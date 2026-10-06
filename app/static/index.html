@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>校園自習空間預約</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">S</span><div><strong>校園自習空間</strong><small>Study Space Reservation</small></div></div>
+    <div id="session-label" class="session-label">請先登入</div>
+  </header>
+
+  <main class="shell">
+    <section id="login-view" class="login-layout">
+      <div class="welcome-card">
+        <p class="eyebrow">CAMPUS STUDY SPACE</p>
+        <h1>找到一個<br>適合專心的座位。</h1>
+        <p class="muted">查詢空間、選擇時段，預約後就能安心安排讀書時間。</p>
+        <div class="feature-row"><span>即時查詢空位</span><span>預約衝突檢查</span><span>個人預約管理</span></div>
+      </div>
+      <form id="login-form" class="panel login-panel">
+        <p class="eyebrow">WELCOME BACK</p>
+        <h2>登入系統</h2>
+        <label>Email<input name="email" type="email" autocomplete="username" required value="student@example.edu"></label>
+        <label>密碼<input name="password" type="password" autocomplete="current-password" required value="student123"></label>
+        <button class="primary full" type="submit">登入</button>
+        <p id="login-error" class="message error" role="status"></p>
+        <details class="demo-access"><summary>展示帳號</summary><p>學生：student@example.edu / student123</p><p>管理者：admin@example.edu / admin123</p></details>
+      </form>
+    </section>
+
+    <section id="app-view" class="hidden">
+      <div class="page-heading"><div><p class="eyebrow">YOUR CAMPUS, YOUR SPACE</p><h1 id="page-title">預約自習座位</h1></div><button id="logout-button" class="ghost">登出</button></div>
+      <nav id="student-nav" class="tabs">
+        <button class="tab active" data-panel="booking-panel">查詢與預約</button>
+        <button class="tab" data-panel="my-reservations-panel">我的預約</button>
+      </nav>
+      <nav id="admin-nav" class="tabs hidden">
+        <button class="tab active" data-panel="admin-spaces-panel">空間管理</button>
+        <button class="tab" data-panel="admin-reservations-panel">預約總覽</button>
+      </nav>
+
+      <section id="booking-panel" class="content-panel">
+        <div class="panel search-panel">
+          <div><p class="eyebrow">FIND A SEAT</p><h2>選擇日期與時段</h2><p class="muted">時間以台灣時間計算，預約不可跨日。</p></div>
+          <form id="search-form" class="search-form">
+            <label>日期<input name="date" id="booking-date" type="date" required></label>
+            <label>開始<input name="start_time" type="time" value="10:00" required></label>
+            <label>結束<input name="end_time" type="time" value="11:00" required></label>
+            <button class="primary" type="submit">查詢空位</button>
+          </form>
+        </div>
+        <div id="selection-banner" class="selection-banner hidden"><span id="selection-text"></span><button id="confirm-booking" class="primary">確認預約</button></div>
+        <div id="spaces-list" class="spaces-grid"></div>
+        <p id="booking-message" class="message" role="status"></p>
+      </section>
+
+      <section id="my-reservations-panel" class="content-panel hidden">
+        <div class="section-intro"><div><p class="eyebrow">MY BOOKINGS</p><h2>我的預約</h2></div><button id="refresh-reservations" class="ghost">重新整理</button></div>
+        <div id="my-reservations-list" class="reservation-list"></div>
+      </section>
+
+      <section id="admin-spaces-panel" class="content-panel hidden">
+        <div class="section-intro"><div><p class="eyebrow">ADMIN CONSOLE</p><h2>空間與時段管理</h2></div><button id="refresh-admin" class="ghost">重新整理</button></div>
+        <div class="admin-grid">
+          <form id="add-space-form" class="panel form-card"><h3>新增自習空間</h3><label>空間名稱<input name="name" required maxlength="100" placeholder="例如：第二自習室"></label><label>位置<input name="location" required maxlength="255" placeholder="例如：圖書館 3 樓"></label><button class="primary" type="submit">新增空間</button></form>
+          <form id="add-seat-form" class="panel form-card"><h3>新增座位</h3><label>自習空間<select name="space_id" class="space-select" required></select></label><label>座位代碼<input name="seat_code" required maxlength="30" placeholder="例如：C01"></label><button class="primary" type="submit">新增座位</button></form>
+          <form id="hours-form" class="panel form-card"><h3>設定每週開放時間</h3><label>自習空間<select name="space_id" class="space-select" required></select></label><label>星期<select name="weekday"><option value="1">星期一</option><option value="2">星期二</option><option value="3">星期三</option><option value="4">星期四</option><option value="5">星期五</option><option value="6">星期六</option><option value="7">星期日</option></select></label><div class="inline-fields"><label>開放<input name="open_time" type="time" value="08:00" required></label><label>關閉<input name="close_time" type="time" value="22:00" required></label></div><button class="primary" type="submit">儲存時段</button></form>
+        </div>
+        <p id="admin-message" class="message" role="status"></p>
+        <div id="admin-spaces-list" class="admin-space-list"></div>
+      </section>
+
+      <section id="admin-reservations-panel" class="content-panel hidden">
+        <div class="section-intro"><div><p class="eyebrow">ALL BOOKINGS</p><h2>預約總覽</h2></div><button id="refresh-admin-reservations" class="ghost">重新整理</button></div>
+        <div id="admin-reservations-list" class="reservation-list"></div>
+      </section>
+    </section>
+  </main>
+  <footer><span>校園自習空間預約系統</span><span>課程專題原型</span></footer>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
