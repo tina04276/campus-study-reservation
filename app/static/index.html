@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>校園自習空間預約</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=yellow2">
 </head>
 <body>
   <header class="topbar">
@@ -44,7 +44,7 @@
 
       <section id="booking-panel" class="content-panel">
         <div class="panel search-panel">
-          <div><p class="eyebrow">FIND A SEAT</p><h2>選擇日期與時段</h2><p class="muted">時間以台灣時間計算，預約不可跨日。</p></div>
+          <div><p class="eyebrow">FIND A SEAT</p><h2>選擇日期與時段</h2><p class="muted">時間以台灣時間計算，請選擇未來時段。</p></div>
           <form id="search-form" class="search-form">
             <label>日期<input name="date" id="booking-date" type="date" required></label>
             <label>開始<input name="start_time" type="time" value="10:00" required></label>
@@ -52,6 +52,8 @@
             <button class="primary" type="submit">查詢空位</button>
           </form>
         </div>
+        <div class="booking-steps" aria-label="預約流程"><span>01 選擇時段</span><span>02 選擇座位</span><span>03 確認預約</span></div>
+        <div class="seat-legend"><span><i class="legend-dot available"></i>可預約</span><span><i class="legend-dot selected"></i>已選取</span><span><i class="legend-dot busy"></i>不可預約</span></div>
         <div id="selection-banner" class="selection-banner hidden"><span id="selection-text"></span><button id="confirm-booking" class="primary">確認預約</button></div>
         <div id="spaces-list" class="spaces-grid"></div>
         <p id="booking-message" class="message" role="status"></p>
@@ -59,6 +61,7 @@
 
       <section id="my-reservations-panel" class="content-panel hidden">
         <div class="section-intro"><div><p class="eyebrow">MY BOOKINGS</p><h2>我的預約</h2></div><button id="refresh-reservations" class="ghost">重新整理</button></div>
+        <p id="reservation-feedback" class="message" role="status"></p>
         <div id="my-reservations-list" class="reservation-list"></div>
       </section>
 
@@ -79,7 +82,15 @@
       </section>
     </section>
   </main>
+  <dialog id="booking-dialog" aria-labelledby="booking-dialog-title">
+    <div class="dialog-body"><p class="eyebrow">BOOK YOUR SEAT</p><h2 id="booking-dialog-title">確認預約資訊</h2>
+      <p class="muted">確認日期、時段與座位後，再送出預約。</p>
+      <dl id="booking-summary" class="booking-summary"></dl>
+      <p id="dialog-error" class="message error" role="alert"></p>
+      <div class="dialog-actions"><button id="close-booking-dialog" class="ghost" type="button">返回選位</button><button id="submit-booking" class="primary" type="button">送出預約</button></div>
+    </div>
+  </dialog>
   <footer><span>校園自習空間預約系統</span><span>課程專題原型</span></footer>
-  <script src="/static/app.js" defer></script>
+  <script src="/static/app.js?v=yellow2" defer></script>
 </body>
 </html>
