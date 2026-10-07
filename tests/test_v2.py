@@ -84,9 +84,10 @@ def test_accounts_and_layout_management(client):
     assert client.patch('/api/admin/spaces/'+sid,headers=admin,json={'name':'Updated','location':'Campus 2F','equipment':'Wi-Fi, Whiteboard','hourly_rate':70}).status_code==200
     assert client.patch('/api/admin/spaces/'+sid,headers=admin,json={'grid_rows':1,'grid_cols':1,'aisle_col':0,'entrance_col':1}).status_code==422
     assert client.patch('/api/admin/spaces/'+sid,headers=admin,json={'capacity':4}).status_code==422
+    assert client.patch('/api/admin/spaces/'+sid,headers=admin,json={'grid_rows':2}).status_code==200
     assert client.patch('/api/admin/seats/'+seat['seat_id'],headers=admin,json={'row_no':2,'col_no':1,'seat_code':'EDITED'}).status_code==200
     assert client.post('/api/admin/spaces/'+sid+'/seats',headers=admin,json={'seat_code':'DUPPOS','row_no':2,'col_no':1}).status_code==409
-    assert client.patch('/api/admin/seats/'+seat['seat_id'],headers=admin,json={'col_no':4}).status_code==422
+    assert client.patch('/api/admin/seats/'+seat['seat_id'],headers=admin,json={'col_no':space['aisle_col']}).status_code==422
     assert client.patch('/api/admin/spaces/'+sid,headers=admin,json={'name':None}).status_code==422
     start,end=future_slot()
     data=client.get('/api/spaces?date='+start[:10]+'&start_time=10:00&end_time=11:00',headers=student).json()

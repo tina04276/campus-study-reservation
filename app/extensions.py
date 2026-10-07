@@ -103,11 +103,16 @@ def seed_v2(factory, seed):
                     db.add(Seat(space_id=space.space_id, seat_code=f"{category}-{i+1:02}", row_no=i//6+1, col_no=[1,2,3,5,6,7][i%6]))
                 for day in range(1, 8): db.add(OpeningHour(space_id=space.space_id, weekday=day, open_time=time(8), close_time=time(22)))
             db.add(SchemaVersion(version="v2-demo-spaces"))
+        if seed:
+            db.flush()
+            from .space_plan import apply_space_plan
+            apply_space_plan(db)
         db.commit()
 
 
 def space_dict(space):
-    return {"space_id": str(space.space_id), **{k: getattr(space, k) for k in ["name", "location", "category", "capacity", "equipment", "hourly_rate", "grid_rows", "grid_cols", "aisle_col", "entrance_col", "is_active"]}}
+    from .space_plan import plan_for
+    return {"plan_zone": plan_for(space), "space_id": str(space.space_id), **{k: getattr(space, k) for k in ["name", "location", "category", "capacity", "equipment", "hourly_rate", "grid_rows", "grid_cols", "aisle_col", "entrance_col", "is_active"]}}
 
 
 def seat_dict(seat):
