@@ -6,7 +6,7 @@ import os
 import uuid
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 
 import bcrypt
@@ -15,6 +15,10 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import AwareDatetime, BaseModel, Field, field_validator
 from sqlalchemy import (
+    Integer,
+    inspect,
+    update,
+    event,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -38,93 +42,57 @@ DEFAULT_SECRET = "development-only-change-me"
 ROOT = Path(__file__).resolve().parent
 
 
-class Base(DeclarativeBase):
-    pass
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(20))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    __table_args__ = (CheckConstraint("role IN ('STUDENT', 'ADMIN')", name="ck_users_role"),)
-
-
-class StudySpace(Base):
-    __tablename__ = "study_spaces"
-
-    space_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    name: Mapped[str] = mapped_column(String(100))
-    location: Mapped[str] = mapped_column(String(255))
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
-
-
-class Seat(Base):
-    __tablename__ = "seats"
-
-    seat_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    space_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("study_spaces.space_id", ondelete="RESTRICT"))
-    seat_code: Mapped[str] = mapped_column(String(30))
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
-    __table_args__ = (UniqueConstraint("space_id", "seat_code", name="uq_seats_space_code"),)
-
-
-class OpeningHour(Base):
-    __tablename__ = "opening_hours"
-
-    opening_hours_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    space_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("study_spaces.space_id", ondelete="CASCADE"))
-    weekday: Mapped[int] = mapped_column()
-    open_time: Mapped[time] = mapped_column(Time)
-    close_time: Mapped[time] = mapped_column(Time)
-    __table_args__ = (
-        UniqueConstraint("space_id", "weekday", name="uq_hours_space_weekday"),
-        CheckConstraint("weekday BETWEEN 1 AND 7", name="ck_hours_weekday"),
-        CheckConstraint("close_time > open_time", name="ck_hours_order"),
-    )
-
-
-class Reservation(Base):
-    __tablename__ = "reservations"
-
-    reservation_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.user_id", ondelete="RESTRICT"))
-    seat_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("seats.seat_id", ondelete="RESTRICT"))
-    start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    status: Mapped[str] = mapped_column(String(20), default="RESERVED", server_default="RESERVED")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    __table_args__ = (
-        CheckConstraint("end_at > start_at", name="ck_reservation_time_order"),
-        CheckConstraint("status IN ('RESERVED', 'CANCELLED')", name="ck_reservation_status"),
-    )
+from .models import Base, User, StudySpace, Seat, OpeningHour, Reservation, aware, reservation_dict
 
 
 class LoginInput(BaseModel):
     email: str = Field(min_length=3, max_length=255)
-    password: str = Field(min_length=1, max_length=128)
+    password: str = Field(min_length=1, max_length=72)
+
+    @field_validator("password")
+    @classmethod
+    def password_size(cls, value):
+        if len(value.encode()) > 72: raise ValueError("密碼長度超出限制")
+        return value
 
 
 class SpaceInput(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     location: str = Field(min_length=1, max_length=255)
+    category: Literal["GENERAL", "VIP", "ROOM2", "ROOM4"] = "GENERAL"
+    capacity: int = Field(default=1, ge=1, le=4)
+    equipment: str = Field(default="", max_length=500)
+    hourly_rate: int = Field(default=0, ge=0, le=10000)
+    grid_rows: int = Field(default=4, ge=1, le=20)
+    grid_cols: int = Field(default=7, ge=1, le=15)
+    aisle_col: int = Field(default=4, ge=0, le=15)
+    entrance_col: int = Field(default=4, ge=1, le=15)
 
 
 class SpacePatch(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     location: str | None = Field(default=None, min_length=1, max_length=255)
+    category: Literal["GENERAL", "VIP", "ROOM2", "ROOM4"] | None = None
+    capacity: int | None = Field(default=None, ge=1, le=4)
+    equipment: str | None = Field(default=None, max_length=500)
+    hourly_rate: int | None = Field(default=None, ge=0, le=10000)
+    grid_rows: int | None = Field(default=None, ge=1, le=20)
+    grid_cols: int | None = Field(default=None, ge=1, le=15)
+    aisle_col: int | None = Field(default=None, ge=0, le=15)
+    entrance_col: int | None = Field(default=None, ge=1, le=15)
     is_active: bool | None = None
 
 
 class SeatInput(BaseModel):
     seat_code: str = Field(min_length=1, max_length=30)
+    row_no: int = Field(default=0, ge=0, le=20)
+    col_no: int = Field(default=0, ge=0, le=15)
 
 
 class SeatPatch(BaseModel):
     seat_code: str | None = Field(default=None, min_length=1, max_length=30)
+    row_no: int | None = Field(default=None, ge=1, le=20)
+    col_no: int | None = Field(default=None, ge=1, le=15)
     is_active: bool | None = None
 
 
@@ -145,6 +113,8 @@ class ReservationInput(BaseModel):
     seat_id: uuid.UUID
     start_at: AwareDatetime
     end_at: AwareDatetime
+    party_size: int = Field(default=1, ge=1, le=4)
+    expected_amount: int | None = Field(default=None, ge=0, le=1000000)
 
 
 def b64url(raw: bytes) -> str:
@@ -181,24 +151,6 @@ def decode_token(token: str, secret: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid or expired token") from exc
 
 
-def aware(value: datetime) -> datetime:
-    return value.replace(tzinfo=TAIPEI) if value.tzinfo is None else value
-
-
-def reservation_dict(reservation: Reservation, seat: Seat, space: StudySpace, user: User | None = None) -> dict:
-    data = {
-        "reservation_id": str(reservation.reservation_id),
-        "seat_id": str(seat.seat_id), "seat_code": seat.seat_code,
-        "space_id": str(space.space_id), "space_name": space.name,
-        "location": space.location, "start_at": aware(reservation.start_at).isoformat(),
-        "end_at": aware(reservation.end_at).isoformat(), "status": reservation.status,
-        "created_at": aware(reservation.created_at).isoformat() if reservation.created_at else None,
-    }
-    if user is not None:
-        data.update({"user_id": str(user.user_id), "email": user.email})
-    return data
-
-
 def install_postgres_overlap_constraint(engine) -> None:
     if engine.dialect.name != "postgresql":
         return
@@ -232,10 +184,15 @@ def create_app(database_url: str | None = None, seed: bool = True) -> FastAPI:
     connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
     engine = create_engine(url, connect_args=connect_args, pool_pre_ping=True)
     session_factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    if engine.dialect.name == "sqlite":
+        @event.listens_for(engine, "connect")
+        def enable_fk(connection, _):
+            connection.execute("PRAGMA foreign_keys=ON")
+    migrate_v2(engine)
     Base.metadata.create_all(engine)
     install_postgres_overlap_constraint(engine)
 
-    app = FastAPI(title="Campus Study Reservation", version="1.0.0")
+    app = FastAPI(title="Campus Study Reservation", version="2.0.0")
     app.state.engine = engine
     app.state.SessionLocal = session_factory
     app.state.jwt_secret = secret
@@ -257,6 +214,10 @@ def create_app(database_url: str | None = None, seed: bool = True) -> FastAPI:
                 for space in (space_a, space_b):
                     db.add_all([OpeningHour(space_id=space.space_id, weekday=day, open_time=time(8), close_time=time(22)) for day in range(1, 8)])
             db.commit()
+
+    seed_v2(session_factory, seed)
+    with engine.begin() as conn:
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_seats_layout ON seats (space_id, row_no, col_no) WHERE row_no > 0 AND col_no > 0"))
 
     def get_db(request: Request):
         with request.app.state.SessionLocal() as db:
@@ -325,9 +286,9 @@ def create_app(database_url: str | None = None, seed: bool = True) -> FastAPI:
                     Reservation.start_at < end_at,
                     Reservation.end_at > start_at,
                 ).limit(1)) is not None
-                seat_results.append({"seat_id": str(seat.seat_id), "seat_code": seat.seat_code,
+                seat_results.append({**seat_dict(seat),
                                      "is_available": is_open and not overlap})
-            result.append({"space_id": str(space.space_id), "name": space.name, "location": space.location,
+            result.append({**space_dict(space), "opening_hours": {"open_time": hours.open_time.strftime("%H:%M"), "close_time": hours.close_time.strftime("%H:%M")} if hours else None,
                            "is_open": is_open, "seats": seat_results})
         return result
 
@@ -353,35 +314,48 @@ def create_app(database_url: str | None = None, seed: bool = True) -> FastAPI:
             Reservation.start_at < end_at, Reservation.end_at > start_at).limit(1))
         if overlap is not None:
             raise HTTPException(status_code=409, detail="Seat is already reserved for this time")
-        reservation = Reservation(user_id=user.user_id, seat_id=seat.seat_id,
+        if body.party_size > space.capacity:
+            raise HTTPException(422, "人數超過此座位／研究室容量")
+        amount = price(space.hourly_rate, start_at, end_at)
+        if body.expected_amount is not None and body.expected_amount != amount:
+            raise HTTPException(409, "價格已更新，請重新查詢並確認金額")
+        reservation = Reservation(user_id=user.user_id, seat_id=seat.seat_id, amount=amount, party_size=body.party_size,
                                   start_at=start_at, end_at=end_at, status="RESERVED")
         db.add(reservation)
         try:
+            db.flush()
+            if amount:
+                debit(db, user.user_id, amount, reservation.reservation_id)
             db.commit()
         except IntegrityError as exc:
             db.rollback()
             raise HTTPException(status_code=409, detail="Seat is already reserved for this time") from exc
         db.refresh(reservation)
-        return reservation_dict(reservation, seat, space)
+        return booking_dict(db, reservation, seat, space)
 
     @app.get("/api/me/reservations")
-    def my_reservations(db: DB, user: Student):
+    def my_reservations(db: DB, user: Student, day: date | None = Query(default=None, alias="date"), booking_status: Literal["RESERVED", "CANCELLED"] | None = Query(default=None, alias="status")):
         rows = db.execute(select(Reservation, Seat, StudySpace)
                           .join(Seat, Reservation.seat_id == Seat.seat_id)
                           .join(StudySpace, Seat.space_id == StudySpace.space_id)
                           .where(Reservation.user_id == user.user_id)
                           .order_by(Reservation.start_at.desc())).all()
-        return [reservation_dict(r, seat, space) for r, seat, space in rows]
+        return [booking_dict(db, r, seat, space) for r, seat, space in rows if (day is None or aware(r.start_at).astimezone(TAIPEI).date() == day) and (booking_status is None or r.status == booking_status)]
 
     @app.delete("/api/reservations/{reservation_id}")
     def cancel_reservation(reservation_id: uuid.UUID, db: DB, user: Student):
-        reservation = db.get(Reservation, reservation_id)
+        reservation = db.scalar(select(Reservation).where(Reservation.reservation_id == reservation_id).with_for_update())
         if reservation is None:
             raise HTTPException(status_code=404, detail="Reservation not found")
         if reservation.user_id != user.user_id:
             raise HTTPException(status_code=403, detail="Cannot cancel another user's reservation")
         if reservation.status != "RESERVED" or aware(reservation.start_at) <= datetime.now(TAIPEI):
             raise HTTPException(status_code=409, detail="Reservation can no longer be cancelled")
+        attendance = db.get(Attendance, reservation_id)
+        if attendance and attendance.checked_in_at:
+            raise HTTPException(409, "已報到的預約不可取消")
+        if reservation.amount:
+            credit(db, user.user_id, reservation.amount, "REFUND", "refund:" + str(reservation_id), reservation_id=reservation_id)
         reservation.status = "CANCELLED"
         db.commit()
         return {"message": "Reservation cancelled", "reservation_id": str(reservation_id), "status": "CANCELLED"}
@@ -393,16 +367,18 @@ def create_app(database_url: str | None = None, seed: bool = True) -> FastAPI:
         for space in spaces:
             seats = db.scalars(select(Seat).where(Seat.space_id == space.space_id).order_by(Seat.seat_code)).all()
             hours = db.scalars(select(OpeningHour).where(OpeningHour.space_id == space.space_id).order_by(OpeningHour.weekday)).all()
-            output.append({"space_id": str(space.space_id), "name": space.name, "location": space.location,
+            output.append({**space_dict(space),
                            "is_active": space.is_active,
-                           "seats": [{"seat_id": str(s.seat_id), "seat_code": s.seat_code, "is_active": s.is_active} for s in seats],
+                           "seats": [{**seat_dict(s), "is_active": s.is_active} for s in seats],
                            "opening_hours": [{"weekday": h.weekday, "open_time": h.open_time.strftime("%H:%M"),
                                               "close_time": h.close_time.strftime("%H:%M")} for h in hours]})
         return output
 
     @app.post("/api/admin/spaces", status_code=201)
     def add_space(body: SpaceInput, db: DB, user: Admin):
-        space = StudySpace(name=body.name.strip(), location=body.location.strip(), is_active=True)
+        values = body.model_dump()
+        validate_space(values)
+        space = StudySpace(**values, is_active=True)
         db.add(space); db.commit(); db.refresh(space)
         return {"space_id": str(space.space_id), "name": space.name, "location": space.location, "is_active": space.is_active}
 
@@ -410,7 +386,15 @@ def create_app(database_url: str | None = None, seed: bool = True) -> FastAPI:
     def patch_space(space_id: uuid.UUID, body: SpacePatch, db: DB, user: Admin):
         space = db.get(StudySpace, space_id)
         if space is None: raise HTTPException(status_code=404, detail="Study space not found")
-        for key, value in body.model_dump(exclude_unset=True).items(): setattr(space, key, value)
+        changes = body.model_dump(exclude_unset=True)
+        if any(v is None for v in changes.values()): raise HTTPException(422, "欄位不可為空值")
+        values = space_dict(space) | changes
+        validate_space(values)
+        existing = db.scalars(select(Seat).where(Seat.space_id == space_id)).all()
+        for seat in existing:
+            if seat.row_no > values["grid_rows"] or seat.col_no > values["grid_cols"] or seat.col_no == values["aisle_col"]:
+                raise HTTPException(422, "新配置會覆蓋既有座位，請先調整座位位置")
+        for key, value in changes.items(): setattr(space, key, value)
         db.commit(); db.refresh(space)
         return {"space_id": str(space.space_id), "name": space.name, "location": space.location, "is_active": space.is_active}
 
@@ -418,7 +402,11 @@ def create_app(database_url: str | None = None, seed: bool = True) -> FastAPI:
     def add_seat(space_id: uuid.UUID, body: SeatInput, db: DB, user: Admin):
         space = db.get(StudySpace, space_id)
         if space is None: raise HTTPException(status_code=404, detail="Study space not found")
-        seat = Seat(space_id=space_id, seat_code=body.seat_code.strip(), is_active=True)
+        # Serialize placement writes for this space on PostgreSQL.
+        db.scalar(select(StudySpace).where(StudySpace.space_id == space_id).with_for_update())
+        row, col = seat_position(db, space, body.row_no, body.col_no)
+        seat = Seat(space_id=space_id, seat_code=body.seat_code.strip(), row_no=row, col_no=col, is_active=True)
+        if not seat.seat_code: raise HTTPException(422, "座位代碼不可空白")
         db.add(seat)
         try: db.commit()
         except IntegrityError as exc:
@@ -430,7 +418,12 @@ def create_app(database_url: str | None = None, seed: bool = True) -> FastAPI:
     def patch_seat(seat_id: uuid.UUID, body: SeatPatch, db: DB, user: Admin):
         seat = db.get(Seat, seat_id)
         if seat is None: raise HTTPException(status_code=404, detail="Seat not found")
-        for key, value in body.model_dump(exclude_unset=True).items(): setattr(seat, key, value)
+        changes = body.model_dump(exclude_unset=True)
+        if any(v is None for v in changes.values()): raise HTTPException(422, "欄位不可為空值")
+        space = db.scalar(select(StudySpace).where(StudySpace.space_id == seat.space_id).with_for_update())
+        seat_position(db, space, changes.get("row_no", seat.row_no), changes.get("col_no", seat.col_no), seat.seat_id)
+        if "seat_code" in changes and not changes["seat_code"].strip(): raise HTTPException(422, "座位代碼不可空白")
+        for key, value in changes.items(): setattr(seat, key, value)
         try: db.commit()
         except IntegrityError as exc:
             db.rollback(); raise HTTPException(status_code=409, detail="Seat code already exists in this space") from exc
@@ -456,7 +449,9 @@ def create_app(database_url: str | None = None, seed: bool = True) -> FastAPI:
                           .join(StudySpace, Seat.space_id == StudySpace.space_id)
                           .join(User, Reservation.user_id == User.user_id)
                           .order_by(Reservation.start_at.desc())).all()
-        return [reservation_dict(r, seat, space, owner) for r, seat, space, owner in rows]
+        return [booking_dict(db, r, seat, space, owner) for r, seat, space, owner in rows]
+
+    install_v2_routes(app, DB, Student, Admin)
 
     @app.get("/", include_in_schema=False)
     def home():
@@ -465,5 +460,8 @@ def create_app(database_url: str | None = None, seed: bool = True) -> FastAPI:
     app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
     return app
 
+
+# V2 extension definitions are loaded before constructing the app.
+from .extensions import Attendance, install_v2_routes, migrate_v2, seed_v2, space_dict, seat_dict, booking_dict, price, debit, credit, validate_space, seat_position
 
 app = create_app()

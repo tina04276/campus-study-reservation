@@ -1,250 +1,80 @@
-const $ = (selector, root=document) => root.querySelector(selector);
-const state = { token: localStorage.getItem('study-token') || '', user: null, selected: null, spaces: [] };
-
-function node(tag, className, text) {
-  const item = document.createElement(tag);
-  if (className) item.className = className;
-  if (text !== undefined) item.textContent = text;
-  return item;
+const $ = (s, root=document) => root.querySelector(s);
+const $$ = (s, root=document) => Array.from(root.querySelectorAll(s));
+const state = {token:localStorage.getItem('study-token')||'',user:null,spaces:[],category:'ALL',selected:null,slot:null,searchVersion:0,edit:null};
+const categories={GENERAL:'一般座位',VIP:'VIP 座位',ROOM2:'雙人研究室',ROOM4:'四人研究室'};
+const capacities={GENERAL:1,VIP:1,ROOM2:2,ROOM4:4};
+const attendanceNames={WAITING:'待報到',CHECKED_IN:'已報到',CHECKED_OUT:'已離場',NOT_ATTENDED:'未報到',CANCELLED:'已取消'};
+const paymentNames={PENDING:'待付款',PAID:'已付款',CANCELLED:'已取消',REFUNDED:'已退點',FREE:'免費'};
+function el(tag, cls='', text){const n=document.createElement(tag);n.className=cls;if(text!==undefined)n.textContent=text;return n;}
+function message(target,text='',error=false){const n=typeof target==='string'?$(target):target;n.textContent=text;n.classList.toggle('error',error);}
+function values(form){return Object.fromEntries(new FormData(form));}
+function button(text,fn,cls='ghost'){const b=el('button',cls,text);b.type='button';b.addEventListener('click',fn);return b;}
+async function api(path,options={}){
+ const headers=new Headers(options.headers||{});if(state.token)headers.set('Authorization','Bearer '+state.token);if(options.body)headers.set('Content-Type','application/json');
+ const r=await fetch(path,{...options,headers});const data=await r.json().catch(()=>({}));
+ if(!r.ok){const translations={'Email or password is incorrect':'Email 或密碼不正確。','Invalid or expired token':'登入已過期，請重新登入。','Seat is already reserved for this time':'座位剛被預約，請重新查詢。','Reservation must start in the future':'請選未來的時段。','Reservation is outside opening hours':'超出開放時間。','Reservation can no longer be cancelled':'這筆預約已開始或已取消。','Cannot cancel another user\'s reservation':'不可取消其他人的預約。'};const detail=Array.isArray(data.detail)?data.detail.map(x=>x.msg).join('、'):data.detail;throw new Error(translations[detail]||detail||'操作失敗，請稍後重試。');}return data;
 }
-function showMessage(target, message, error=false) {
-  const box = typeof target === 'string' ? $(target) : target;
-  box.textContent = message || '';
-  box.classList.toggle('error', Boolean(error));
-}
-function taipeiDate(offset=0) {
-  const parts = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
-  const value = Object.fromEntries(parts.map(part => [part.type,part.value]));
-  const day = new Date(Date.UTC(Number(value.year),Number(value.month)-1,Number(value.day)+offset));
-  return day.toISOString().slice(0,10);
-}
-function taipeiToday(){return taipeiDate();}
-function validateSlot(form){
-  if(!form.date || !form.start_time || !form.end_time)return '請填寫日期、開始與結束時間。';
-  if(form.end_time<=form.start_time)return '結束時間必須晚於開始時間。';
-  if(new Date(form.date+'T'+form.start_time+':00+08:00')<=new Date())return '這個時段已經過了，請改選未來的日期或時間。';
-  return '';
-}
-const errorMessages={
-  'Reservation must start in the future':'預約時間已經過了，請改選未來的日期或時間。',
-  'Seat is already reserved for this time':'這個座位剛被預約了，請重新查詢並選擇其他座位。',
-  'Reservation is outside opening hours':'這個時段不在開放時間內，請重新選擇。',
-  'Reservation must end after it starts on the same date':'結束時間必須晚於開始時間，且不可跨日。',
-  'Invalid email or password':'Email 或密碼不正確。'
-};
-async function api(path, options={}) {
-  const headers = new Headers(options.headers || {});
-  if (state.token) headers.set('Authorization', 'Bearer ' + state.token);
-  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  const response = await fetch(path, {...options, headers});
-  const data = response.status === 204 ? null : await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const detail = data && data.detail;
-    const message = Array.isArray(detail) ? detail.map(x => x.msg).join('、') : (detail || '發生錯誤');
-    throw new Error(errorMessages[message] || (response.status>=500?'系統暫時無法完成操作，請稍後重試。':message));
-  }
-  return data;
-}
-function logout() {
-  state.token=''; state.user=null; state.selected=null;
-  localStorage.removeItem('study-token');
-  localStorage.removeItem('study-email');
-  $('#app-view').classList.add('hidden'); $('#login-view').classList.remove('hidden');
-  $('#session-label').textContent='請先登入';
-}
-function activatePanel(panelId, nav) {
-  $$('.content-panel').forEach(el => el.classList.add('hidden'));
-  $('#'+panelId).classList.remove('hidden');
-  nav.querySelectorAll('.tab').forEach(button => button.classList.toggle('active', button.dataset.panel === panelId));
-}
-function $$(selector, root=document) { return Array.from(root.querySelectorAll(selector)); }
-function setupSession(user) {
-  state.user=user;
-  $('#login-view').classList.add('hidden'); $('#app-view').classList.remove('hidden');
-  $('#session-label').textContent=user.email+' · '+(user.role==='ADMIN'?'管理者':'學生');
-  const isAdmin=user.role==='ADMIN';
-  $('#student-nav').classList.toggle('hidden',isAdmin); $('#admin-nav').classList.toggle('hidden',!isAdmin);
-  $('#page-title').textContent=isAdmin?'管理自習空間':'預約自習座位';
-  activatePanel(isAdmin?'admin-spaces-panel':'booking-panel',isAdmin?$('#admin-nav'):$('#student-nav'));
-  if (isAdmin) loadAdmin(); else { loadReservations(); searchSpaces(); }
-}
-
-$('#login-form').addEventListener('submit', async event => {
-  event.preventDefault(); showMessage('#login-error','');
-  const values=Object.fromEntries(new FormData(event.currentTarget));
-  try {
-    const result=await api('/api/login',{method:'POST',body:JSON.stringify(values)});
-    state.token=result.access_token; localStorage.setItem('study-token',state.token); localStorage.setItem('study-email',result.user.email); setupSession(result.user);
-  } catch (error) { showMessage('#login-error',error.message,true); }
-});
+function taipeiDate(offset=0){const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));return new Date(Date.UTC(+p.year,+p.month-1,+p.day+offset)).toISOString().slice(0,10);}
+function formatDate(d){return new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(d));}
+function clock(d){return new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(d));}
+function validateSlot(s){if(!s.date||!s.start_time||!s.end_time)return '請填寫日期與時間。';if(s.end_time<=s.start_time)return '結束時間必須晚於開始時間。';if(new Date(s.date+'T'+s.start_time+':00+08:00')<=new Date())return '請選擇未來時段。';return '';}
+function activatePanel(id){$$('.content-panel').forEach(p=>p.classList.toggle('hidden',p.id!==id));$$('.tab').forEach(b=>b.classList.toggle('active',b.dataset.panel===id));}
+async function setupSession(user){state.user=user;$('#login-view').classList.add('hidden');$('#app-view').classList.remove('hidden');const admin=user.role==='ADMIN';$('#student-nav').classList.toggle('hidden',admin);$('#admin-nav').classList.toggle('hidden',!admin);$('#session-label').textContent=user.email+' · '+(admin?'管理者':'學生');$('#page-title').textContent=admin?'管理自習空間':'預約自習空間';activatePanel(admin?'admin-spaces-panel':'booking-panel');if(admin)await loadAdmin();else await searchSpaces();}
+function logout(){state.token='';state.user=null;state.selected=null;state.searchVersion++;localStorage.removeItem('study-token');$$('dialog[open]').forEach(d=>d.close());$('#app-view').classList.add('hidden');$('#login-view').classList.remove('hidden');$('#session-label').textContent='請先登入';}
+$('#booking-date').min=taipeiDate();$('#booking-date').value=taipeiDate(1);
+$('#login-form').addEventListener('submit',async e=>{e.preventDefault();const b=$('button',e.currentTarget);b.disabled=true;try{const r=await api('/api/login',{method:'POST',body:JSON.stringify(values(e.currentTarget))});state.token=r.access_token;localStorage.setItem('study-token',state.token);await setupSession(r.user);message('#login-error');}catch(err){message('#login-error',err.message,true);}finally{b.disabled=false;}});
 $('#logout-button').addEventListener('click',logout);
-$('#booking-date').min=taipeiToday();
-$('#booking-date').value=taipeiDate(1);
-
-$('#student-nav').addEventListener('click', event => {
-  const button=event.target.closest('.tab'); if(!button)return;
-  activatePanel(button.dataset.panel,$('#student-nav'));
-  if(button.dataset.panel==='my-reservations-panel') loadReservations();
-});
-$('#admin-nav').addEventListener('click', event => {
-  const button=event.target.closest('.tab'); if(!button)return;
-  activatePanel(button.dataset.panel,$('#admin-nav'));
-  if(button.dataset.panel==='admin-reservations-panel') loadAdminReservations();
-});
-
-$('#search-form').addEventListener('submit',event=>{event.preventDefault();searchSpaces();});
-async function searchSpaces() {
-  const form=Object.fromEntries(new FormData($('#search-form')));
-  if(!form.date) form.date=taipeiToday();
-  const validation=validateSlot(form);
-  if(validation){state.selected=null;$('#selection-banner').classList.add('hidden');$('#spaces-list').replaceChildren();showMessage('#booking-message',validation,true);return;}
-  const query=new URLSearchParams(form);
-  $('#spaces-list').replaceChildren(node('p','muted','查詢中…'));
-  $('#selection-banner').classList.add('hidden'); state.selected=null;
-  try {
-    const spaces=await api('/api/spaces?'+query.toString());
-    state.spaces=spaces; renderSpaces(spaces); showMessage('#booking-message',spaces.length?'選一個可預約的座位，再確認預約資訊。':'目前沒有啟用中的自習空間。');
-  } catch(error){$('#spaces-list').replaceChildren();showMessage('#booking-message',error.message,true);}
-}
-function renderSpaces(spaces) {
-  const root=$('#spaces-list'); root.replaceChildren();
-  for(const space of spaces){
-    const card=node('article','space-card');
-    const available=space.seats.filter(seat=>seat.is_available).length;
-    card.append(node('h3','',space.name),node('p','space-meta',space.location+' · 可預約 '+available+' / '+space.seats.length+' 席'));
-    if(!space.is_open) card.append(node('p','closed-note','此時段非開放時間'));
-    const seats=node('div','seat-list');
-    if(!space.seats.length) seats.append(node('span','muted','尚未設定座位'));
-    for(const seat of space.seats){
-      const button=node('button','seat-button'+(seat.is_available?'':' busy'),seat.seat_code);
-      button.type='button';button.disabled=!seat.is_available;button.dataset.seatId=seat.seat_id;button.setAttribute('aria-pressed','false');button.setAttribute('aria-label',seat.seat_code+(seat.is_available?' 可預約':' 不可預約'));
-      button.addEventListener('click',()=>selectSeat(space,seat)); seats.append(button);
-    }
-    card.append(seats);root.append(card);
-  }
-}
-function selectSeat(space,seat) {
-  const form=Object.fromEntries(new FormData($('#search-form')));
-  $$('.seat-button').forEach(button=>{const selected=button.dataset.seatId===seat.seat_id;button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));});
-  state.selected={seat_id:seat.seat_id,seat_code:seat.seat_code,space_name:space.name,...form};
-  $('#selection-text').textContent='已選擇 '+space.name+' · '+seat.seat_code+' · '+form.date+' '+form.start_time+'–'+form.end_time;
-  $('#selection-banner').classList.remove('hidden');
-}
-$('#search-form').addEventListener('input',()=>{
-  state.selected=null;$('#selection-banner').classList.add('hidden');$('#spaces-list').replaceChildren();
-  showMessage('#booking-message','時段已變更，請重新查詢空位。');
-});
-$('#confirm-booking').addEventListener('click',()=>{
-  if(!state.selected)return;
-  const s=state.selected, validation=validateSlot(s);
-  if(validation){showMessage('#booking-message',validation,true);return;}
-  const summary=$('#booking-summary');summary.replaceChildren();
-  for(const [label,value] of [['自習空間',s.space_name],['座位',s.seat_code],['日期',s.date],['時間',s.start_time+'–'+s.end_time+'（台灣時間）']])summary.append(node('dt','',label),node('dd','',value));
-  showMessage('#dialog-error','');$('#booking-dialog').showModal();
-});
+const panelLoads={'my-reservations-panel':loadReservations,'wallet-panel':loadWallet,'admin-spaces-panel':loadAdmin,'admin-users-panel':loadUsers,'admin-reservations-panel':loadAdminReservations,'admin-payments-panel':loadAdminPayments};
+for(const nav of ['#student-nav','#admin-nav'])$(nav).addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;activatePanel(b.dataset.panel);panelLoads[b.dataset.panel]?.();});
+$('#category-filters').addEventListener('click',e=>{const b=e.target.closest('[data-category]');if(!b)return;state.category=b.dataset.category;$$('.category').forEach(n=>n.classList.toggle('active',n===b));state.selected=null;$('#selection-banner').classList.add('hidden');renderSpaces();});
+$('#search-form').addEventListener('submit',e=>{e.preventDefault();searchSpaces();});
+$('#search-form').addEventListener('input',()=>{state.searchVersion++;state.selected=null;state.spaces=[];$('#selection-banner').classList.add('hidden');$('#spaces-list').replaceChildren();message('#booking-message','時段已變更，請重新查詢。');});
+async function searchSpaces(){const slot=values($('#search-form')),valid=validateSlot(slot);state.selected=null;$('#selection-banner').classList.add('hidden');const version=++state.searchVersion;if(valid){message('#booking-message',valid,true);$('#spaces-list').replaceChildren();return;}message('#booking-message','查詢中…');try{const spaces=await api('/api/spaces?'+new URLSearchParams(slot));if(version!==state.searchVersion||!state.user)return;state.spaces=spaces;state.slot=slot;renderSpaces();message('#booking-message','選擇座位；也可先查看當日時段。');}catch(e){if(version===state.searchVersion)message('#booking-message',e.message,true);}}
+function renderSpaces(){const root=$('#spaces-list');root.replaceChildren();const spaces=state.spaces.filter(s=>state.category==='ALL'||s.category===state.category);if(!spaces.length){root.append(el('p','empty-state','此類型目前沒有空間。'));return;}
+ for(const s of spaces){const card=el('article','space-card');const head=el('div','space-card-head');const info=el('div');info.append(el('span','space-category',categories[s.category]),el('h3','',s.name),el('p','space-meta',s.location));head.append(info,el('span','rate-badge',s.hourly_rate?`${s.hourly_rate} 點／小時`:'免費'));card.append(head,el('p','space-description',`每個${s.capacity>1?'研究室':'座位'}可用 ${s.capacity} 人 · ${s.equipment||'設備尚未填寫'}`),el('p','space-meta',`開放 ${s.opening_hours?s.opening_hours.open_time+'–'+s.opening_hours.close_time:'當日未開放'} · 可預約 ${s.seats.filter(x=>x.is_available).length}/${s.seats.length}`));
+ card.append(button('查看當日時段',()=>showSchedule(s)));
+ const scroll=el('div','floor-scroll');const grid=el('div','floor-grid');grid.style.gridTemplateColumns=`repeat(${s.grid_cols}, minmax(48px,1fr))`;
+ for(let row=1;row<=s.grid_rows;row++)for(let col=1;col<=s.grid_cols;col++){const seat=s.seats.find(x=>x.row_no===row&&x.col_no===col);let cell;if(col===s.aisle_col)cell=el('span','aisle',row===1?'走道':'');else if(seat){cell=button(seat.seat_code,()=>selectSeat(s,seat),'seat-button'+(seat.is_available?'':' busy'));cell.disabled=!seat.is_available;cell.dataset.seatId=seat.seat_id;cell.setAttribute('aria-pressed','false');cell.setAttribute('aria-label',`${seat.seat_code} 第${row}列第${col}欄 ${seat.is_available?'可預約':'不可預約'}`);}else cell=el('span','floor-empty');grid.append(cell);}
+ const entrance=el('div','entrance-row');entrance.style.gridTemplateColumns=`repeat(${s.grid_cols}, minmax(48px,1fr))`;const mark=el('span','entrance','入口 ↑');mark.style.gridColumn=s.entrance_col;entrance.append(mark);scroll.append(grid,entrance);card.append(scroll);root.append(card);}}
+function selectSeat(space,seat){state.selected={space,seat,...state.slot};$$('.seat-button').forEach(b=>{const yes=b.dataset.seatId===seat.seat_id;b.classList.toggle('selected',yes);b.setAttribute('aria-pressed',String(yes));});$('#selection-text').textContent=`${space.name} · ${seat.seat_code} · ${state.slot.date} ${state.slot.start_time}–${state.slot.end_time}`;$('#selection-banner').classList.remove('hidden');}
+function summary(root,entries){root.replaceChildren();for(const [label,value]of entries)root.append(el('dt','',label),el('dd','',value));}
+function quote(s){const minutes=(new Date(s.date+'T'+s.end_time+':00+08:00')-new Date(s.date+'T'+s.start_time+':00+08:00'))/60000;return Math.ceil(s.space.hourly_rate*Math.ceil(minutes)/60);}
+$('#confirm-booking').addEventListener('click',()=>{const s=state.selected;if(!s)return;const valid=validateSlot(s);if(valid){message('#booking-message',valid,true);return;}summary($('#booking-summary'),[['空間',s.space.name],['座位／研究室',s.seat.seat_code],['日期',s.date],['時間',s.start_time+'–'+s.end_time],['預估扣點',quote(s)+' 點']]);$('#party-size').replaceChildren();for(let n=1;n<=s.space.capacity;n++){const o=el('option','',n+' 人');o.value=n;$('#party-size').append(o);}$('#booking-cost-note').textContent='按分鐘計費，未滿1點進位。確認後以伺服器計算金額扣點；開始前且未報到可取消並全額退點。';$('#submit-booking').textContent=quote(s)?'扣點並預約':'確認免費預約';message('#dialog-error');$('#booking-dialog').showModal();});
 $('#close-booking-dialog').addEventListener('click',()=>$('#booking-dialog').close());
-$('#submit-booking').addEventListener('click',async()=>{
-  if(!state.selected)return;
-  const s=state.selected, validation=validateSlot(s);
-  if(validation){showMessage('#dialog-error',validation,true);return;}
-  const submit=$('#submit-booking'), close=$('#close-booking-dialog');
-  submit.disabled=true;close.disabled=true;submit.textContent='送出中…';
-  try{
-    await api('/api/reservations',{method:'POST',body:JSON.stringify({seat_id:s.seat_id,start_at:s.date+'T'+s.start_time+':00+08:00',end_at:s.date+'T'+s.end_time+':00+08:00'})});
-    state.selected=null;$('#selection-banner').classList.add('hidden');$('#booking-dialog').close();
-    activatePanel('my-reservations-panel',$('#student-nav'));
-    showMessage('#reservation-feedback','預約成功！'+s.space_name+' · '+s.seat_code+' · '+s.date+' '+s.start_time+'–'+s.end_time);
-    await loadReservations();
-  }catch(error){showMessage('#dialog-error',error.message,true);}
-  finally{submit.disabled=false;close.disabled=false;submit.textContent='送出預約';}
-});
-
-async function loadReservations(){
-  try{renderReservations(await api('/api/me/reservations'),'#my-reservations-list',true);}
-  catch(error){showMessage('#my-reservations-list',error.message,true);}
-}
-$('#refresh-reservations').addEventListener('click',loadReservations);
-function formatDate(value){return new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value));}
-function renderReservations(items,target,allowCancel){
-  const root=$(target);root.replaceChildren();
-  if(!items.length){root.append(node('p','empty-state','目前沒有預約紀錄，請到「查詢與預約」選擇座位。'));return;}
-  for(const item of items){
-    const card=node('article','reservation-card');const left=node('div');
-    left.append(node('h3', '', item.space_name+' · '+item.seat_code),node('p','',formatDate(item.start_at)+' – '+formatDate(item.end_at)));
-    if(item.email) left.append(node('p','',item.email));
-    left.append(node('span','status-pill'+(item.status==='CANCELLED'?' cancelled':''),item.status==='RESERVED'?'已預約':'已取消'));
-    card.append(left);
-    if(allowCancel&&item.status==='RESERVED'){
-      const button=node('button','ghost','取消預約');button.addEventListener('click',async()=>{
-        if(!window.confirm('確定取消這筆預約？'))return;
-        try{await api('/api/reservations/'+item.reservation_id,{method:'DELETE'});await loadReservations();await searchSpaces();}
-        catch(error){window.alert(error.message);}
-      });card.append(button);
-    }
-    root.append(card);
-  }
-}
-
-async function loadAdmin(){
-  try{
-    state.spaces=await api('/api/admin/spaces');
-    renderAdminSpaces();populateSpaceSelects();showMessage('#admin-message','空間資料已載入。');
-  }catch(error){showMessage('#admin-message',error.message,true);}
-}
+let bookingPending=false;
+$('#booking-dialog').addEventListener('cancel',e=>{if(bookingPending)e.preventDefault();});
+$('#submit-booking').addEventListener('click',async()=>{const s=state.selected;if(!s||bookingPending)return;bookingPending=true;const submit=$('#submit-booking'),close=$('#close-booking-dialog');submit.disabled=close.disabled=true;try{const r=await api('/api/reservations',{method:'POST',body:JSON.stringify({seat_id:s.seat.seat_id,start_at:s.date+'T'+s.start_time+':00+08:00',end_at:s.date+'T'+s.end_time+':00+08:00',party_size:+$('#party-size').value,expected_amount:quote(s)})});state.selected=null;$('#selection-banner').classList.add('hidden');$('#booking-dialog').close();$('#reservation-filter').reset();activatePanel('my-reservations-panel');message('#reservation-feedback',`預約成功！${r.space_name} · ${r.seat_code} · 已扣 ${r.amount} 點`);await loadReservations();await searchSpaces();}catch(e){message('#dialog-error',e.message,true);}finally{bookingPending=false;submit.disabled=close.disabled=false;}});
+function showInfo(title,content){$('#info-title').textContent=title;$('#info-content').replaceChildren(content);if(!$('#info-dialog').open)$('#info-dialog').showModal();}
+$('#close-info').addEventListener('click',()=>$('#info-dialog').close());
+async function showSchedule(s){const content=el('div');content.append(el('p','muted','載入中…'));showInfo(s.name+' · 當日時段',content);try{const data=await api(`/api/spaces/${s.space_id}/schedule?date=${state.slot.date}`);content.replaceChildren(el('p','muted',data.date+' · '+(data.opening_hours?`開放 ${data.opening_hours.open_time}–${data.opening_hours.close_time}`:'當日未開放')));for(const seat of data.seats){const row=el('div','schedule-row');row.append(el('strong','',seat.seat_code));if(!seat.booked.length)row.append(el('span','schedule-free','尚無預約'));else for(const slot of seat.booked)row.append(el('span','schedule-busy',clock(slot.start_at)+'–'+clock(slot.end_at)));content.append(row);}content.append(el('p','muted','僅顯示占用時段，不公開其他使用者個資。'));}catch(e){content.replaceChildren(el('p','message error',e.message));}}
+$('#reservation-filter').addEventListener('submit',e=>{e.preventDefault();loadReservations();});$('#reset-filter').addEventListener('click',()=>{$('#reservation-filter').reset();loadReservations();});$('#refresh-reservations').addEventListener('click',loadReservations);
+async function loadReservations(){const query=new URLSearchParams(Object.entries(values($('#reservation-filter'))).filter(([,v])=>v));try{renderReservations(await api('/api/me/reservations?'+query),'#my-reservations-list',true);}catch(e){message('#my-reservations-list',e.message,true);}}
+function renderReservations(items,target,own){const root=$(target);root.replaceChildren();if(!items.length){root.append(el('p','empty-state','沒有符合條件的預約。'));return;}for(const r of items){const card=el('article','reservation-card'),info=el('div'),actions=el('div','actions');info.append(el('h3','',r.space_name+' · '+r.seat_code),el('p','',formatDate(r.start_at)+'–'+clock(r.end_at)),el('p','',`${r.party_size} 人 · ${r.amount} 點 · ${paymentNames[r.payment_status]}`),el('span','status-pill'+(r.status==='CANCELLED'?' cancelled':''),attendanceNames[r.attendance_status]));if(r.email)info.append(el('p','',r.email));if(own){actions.append(button('預約明細',()=>showDetail(r.reservation_id)));if(r.can_cancel)actions.append(button('取消並退點',()=>bookingAction(r,'cancel')));if(r.can_check_in)actions.append(button('報到',()=>bookingAction(r,'check-in'),'primary'));if(r.can_check_out)actions.append(button('離場',()=>bookingAction(r,'check-out')));}else if(r.checked_in_at)info.append(el('p','',`報到 ${formatDate(r.checked_in_at)}${r.checked_out_at?' · 離場 '+formatDate(r.checked_out_at):''}`));card.append(info,actions);root.append(card);}}
+async function showDetail(id){try{const r=await api('/api/reservations/'+id),d=el('dl','booking-summary');summary(d,[['預約編號',r.reservation_id],['空間',r.space_name],['位置',r.location],['座位',r.seat_code],['開始',formatDate(r.start_at)],['結束',formatDate(r.end_at)],['人數',r.party_size+' 人'],['金額',r.amount+' 點'],['付款狀態',paymentNames[r.payment_status]],['報到狀態',attendanceNames[r.attendance_status]],['報到時間',r.checked_in_at?formatDate(r.checked_in_at):'—'],['離場時間',r.checked_out_at?formatDate(r.checked_out_at):'—']]);showInfo('預約明細',d);}catch(e){message('#reservation-feedback',e.message,true);}}
+async function bookingAction(r,action){if(action==='cancel'&&!window.confirm('確認取消？已扣點數會全額退回；報到後不可取消。'))return;try{await api('/api/reservations/'+r.reservation_id+(action==='cancel'?'':'/'+action),{method:action==='cancel'?'DELETE':'POST'});message('#reservation-feedback',action==='cancel'?'預約已取消，點數已退回。':action==='check-in'?'報到成功！':'已完成離場。');await loadReservations();await searchSpaces();}catch(e){message('#reservation-feedback',e.message,true);}}
+$('#refresh-wallet').addEventListener('click',loadWallet);
+async function loadWallet(){try{const w=await api('/api/wallet');$('#wallet-balance').textContent=w.balance.toLocaleString();$('#payment-mode-note').textContent=w.payment_mode==='demo'?'模擬付款展示，不會扣取真實款項。':'正式金流尚未開通，暫停儲值。';$('#topup-form button').disabled=w.payment_mode!=='demo';renderOrders(w.orders,'#payment-orders',true);const root=$('#wallet-transactions');root.replaceChildren();if(!w.transactions.length)root.append(el('p','empty-state','尚無交易紀錄。'));for(const t of w.transactions){const c=el('article','reservation-card');const info=el('div');info.append(el('h3','',{TOPUP:'儲值入帳',BOOKING:'預約扣點',REFUND:'取消退點'}[t.kind]),el('p','',formatDate(t.created_at)));c.append(info,el('strong',t.amount>0?'credit':'debit',(t.amount>0?'+':'')+t.amount+' 點'));root.append(c);}}catch(e){message('#wallet-message',e.message,true);}}
+$('#topup-form').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,b=$('button',form);b.disabled=true;try{await api('/api/payments/topups',{method:'POST',body:JSON.stringify({amount:+values(form).amount,request_key:crypto.randomUUID()})});message('#wallet-message','訂單已建立，請在下方確認模擬付款後入帳。');await loadWallet();}catch(err){message('#wallet-message',err.message,true);}finally{b.disabled=false;}});
+function renderOrders(items,target,own){const root=$(target);root.replaceChildren();if(!items.length)root.append(el('p','empty-state','尚無付款訂單。'));for(const o of items){const c=el('article','reservation-card'),info=el('div'),actions=el('div','actions');info.append(el('h3','',`NT$${o.amount} · ${paymentNames[o.status]}`),el('p','',`DEMO · ${formatDate(o.created_at)}`),el('p','small-id',o.order_id));if(o.email)info.append(el('p','',o.email));if(own&&o.status==='PENDING'){actions.append(button('確認模擬付款',async e=>{if(!window.confirm(`模擬付款 NT$${o.amount}，不會扣取真實款項。繼續？`))return;const b=e.currentTarget;b.disabled=true;try{await api('/api/payments/'+o.order_id+'/demo-confirm',{method:'POST'});message('#wallet-message','模擬付款成功，點數已入帳。');await loadWallet();}catch(err){message('#wallet-message',err.message,true);}finally{b.disabled=false;}},'primary'),button('取消訂單',async()=>{try{await api('/api/payments/'+o.order_id+'/cancel',{method:'POST'});await loadWallet();}catch(e){message('#wallet-message',e.message,true);}}));}c.append(info,actions);root.append(c);}}
+async function loadAdmin(){try{state.spaces=await api('/api/admin/spaces');renderAdmin();$$('.space-select').forEach(select=>{const old=select.value;select.replaceChildren();for(const s of state.spaces){const o=el('option','',s.name);o.value=s.space_id;select.append(o);}if(state.spaces.some(s=>s.space_id===old))select.value=old;});syncHours();}catch(e){message('#admin-message',e.message,true);}}
 $('#refresh-admin').addEventListener('click',loadAdmin);
-function populateSpaceSelects(){
-  $$('.space-select').forEach(select=>{
-    const old=select.value;select.replaceChildren();
-    for(const space of state.spaces){const option=node('option','',space.name+'（'+(space.is_active?'啟用':'停用')+'）');option.value=space.space_id;select.append(option);}
-    if(state.spaces.some(s=>s.space_id===old))select.value=old;
-  });
-}
-function renderAdminSpaces(){
-  const root=$('#admin-spaces-list');root.replaceChildren();
-  if(!state.spaces.length){root.append(node('p','muted','尚未建立空間。'));return;}
-  for(const space of state.spaces){
-    const card=node('article','admin-space');const top=node('div','admin-space-top');const info=node('div');
-    info.append(node('h3','',space.name),node('p','',space.location));
-    const stateButton=node('button','ghost',space.is_active?'停用空間':'啟用空間');
-    stateButton.addEventListener('click',async()=>patchSpace(space,{is_active:!space.is_active}));
-    top.append(info,stateButton);card.append(top);
-    const seatRow=node('div','admin-seat-row');
-    for(const seat of space.seats){
-      const chip=node('span','seat-chip');chip.append(document.createTextNode(seat.seat_code+' '));
-      const toggle=node('button','',seat.is_active?'停用':'啟用');toggle.addEventListener('click',async()=>{
-        try{await api('/api/admin/seats/'+seat.seat_id,{method:'PATCH',body:JSON.stringify({is_active:!seat.is_active})});await loadAdmin();}
-        catch(error){showMessage('#admin-message',error.message,true);}
-      });chip.append(toggle);seatRow.append(chip);
-    }
-    card.append(node('p','',space.seats.length+' 個座位 · '+space.opening_hours.length+' 筆每週時段'),seatRow);
-    root.append(card);
-  }
-}
-async function patchSpace(space,body){
-  try{await api('/api/admin/spaces/'+space.space_id,{method:'PATCH',body:JSON.stringify(body)});await loadAdmin();}
-  catch(error){showMessage('#admin-message',error.message,true);}
-}
-$('#add-space-form').addEventListener('submit',async event=>{
-  event.preventDefault();const body=Object.fromEntries(new FormData(event.currentTarget));
-  try{await api('/api/admin/spaces',{method:'POST',body:JSON.stringify(body)});event.currentTarget.reset();await loadAdmin();showMessage('#admin-message','自習空間已新增。');}
-  catch(error){showMessage('#admin-message',error.message,true);}
-});
-$('#add-seat-form').addEventListener('submit',async event=>{
-  event.preventDefault();const body=Object.fromEntries(new FormData(event.currentTarget));
-  try{await api('/api/admin/spaces/'+body.space_id+'/seats',{method:'POST',body:JSON.stringify({seat_code:body.seat_code})});event.currentTarget.querySelector('[name="seat_code"]').value='';await loadAdmin();showMessage('#admin-message','座位已新增。');}
-  catch(error){showMessage('#admin-message',error.message,true);}
-});
-$('#hours-form').addEventListener('submit',async event=>{
-  event.preventDefault();const body=Object.fromEntries(new FormData(event.currentTarget));
-  try{await api('/api/admin/spaces/'+body.space_id+'/hours/'+body.weekday,{method:'PUT',body:JSON.stringify({open_time:body.open_time,close_time:body.close_time})});await loadAdmin();showMessage('#admin-message','開放時段已儲存。');}
-  catch(error){showMessage('#admin-message',error.message,true);}
-});
-async function loadAdminReservations(){
-  try{renderReservations(await api('/api/admin/reservations'),'#admin-reservations-list',false);}
-  catch(error){showMessage('#admin-reservations-list',error.message,true);}
-}
-$('#refresh-admin-reservations').addEventListener('click',loadAdminReservations);
-
-if(state.token){
-  api('/api/me').then(user=>setupSession(user)).catch(()=>logout());
-}
+function renderAdmin(){const root=$('#admin-spaces-list');root.replaceChildren();for(const s of state.spaces){const card=el('article','admin-space'),top=el('div','admin-space-top'),info=el('div'),actions=el('div','actions');info.append(el('h3','',s.name),el('p','',`${categories[s.category]} · 每單位${s.capacity}人 · ${s.hourly_rate}點／小時 · ${s.location}`),el('p','',s.equipment||'未填設備'));actions.append(button('編輯空間／配置',()=>editSpace(s)),button(s.is_active?'停用空間':'啟用空間',()=>patch('/api/admin/spaces/'+s.space_id,{is_active:!s.is_active})));top.append(info,actions);card.append(top);const hours=el('div','hours-grid');for(let day=1;day<=7;day++){const h=s.opening_hours.find(h=>h.weekday===day);hours.append(el('span','hours-cell',`週${'一二三四五六日'[day-1]} ${h?h.open_time+'–'+h.close_time:'未開放'}`));}card.append(hours,el('p','muted',`配置 ${s.grid_rows} 列 × ${s.grid_cols} 欄 · 走道 ${s.aisle_col||'無'} · 入口第${s.entrance_col}欄`));const seats=el('div','admin-seat-row');for(const seat of s.seats){const chip=el('span','seat-chip');chip.append(el('span','',`${seat.seat_code} (${seat.row_no},${seat.col_no})`),button('編輯',()=>editSeat(seat)),button(seat.is_active?'停用':'啟用',()=>patch('/api/admin/seats/'+seat.seat_id,{is_active:!seat.is_active})));seats.append(chip);}card.append(seats);root.append(card);}}
+async function patch(path,body){try{await api(path,{method:'PATCH',body:JSON.stringify(body)});await loadAdmin();message('#admin-message','已儲存。');}catch(e){message('#admin-message',e.message,true);}}
+function numeric(obj,keys){for(const k of keys)if(k in obj)obj[k]=Number(obj[k]);return obj;}
+function spacePayload(obj){numeric(obj,['hourly_rate','grid_rows','grid_cols','aisle_col','entrance_col']);obj.capacity=capacities[obj.category];return obj;}
+$('#add-space-form').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;try{await api('/api/admin/spaces',{method:'POST',body:JSON.stringify(spacePayload(values(form)))});form.reset();await loadAdmin();message('#admin-message','已新增空間。');}catch(err){message('#admin-message',err.message,true);}});
+$('#add-seat-form').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,v=numeric(values(form),['row_no','col_no']);try{await api('/api/admin/spaces/'+v.space_id+'/seats',{method:'POST',body:JSON.stringify({seat_code:v.seat_code,row_no:v.row_no,col_no:v.col_no})});form.elements.seat_code.value='';await loadAdmin();message('#admin-message','已新增座位。');}catch(err){message('#admin-message',err.message,true);}});
+function syncHours(){const f=$('#hours-form'),s=state.spaces.find(s=>s.space_id===f.elements.space_id.value),h=s?.opening_hours.find(h=>h.weekday===+f.elements.weekday.value);f.elements.open_time.value=h?.open_time||'08:00';f.elements.close_time.value=h?.close_time||'22:00';}
+$('#hours-form [name="space_id"]').addEventListener('change',syncHours);$('#hours-form [name="weekday"]').addEventListener('change',syncHours);
+$('#hours-form').addEventListener('submit',async e=>{e.preventDefault();const v=values(e.currentTarget);try{await api(`/api/admin/spaces/${v.space_id}/hours/${v.weekday}`,{method:'PUT',body:JSON.stringify({open_time:v.open_time,close_time:v.close_time})});await loadAdmin();message('#admin-message','開放時間已更新。');}catch(err){message('#admin-message',err.message,true);}});
+function field(name,label,value,type='text',min=null,max=null){const l=el('label','',label),input=el('input');input.name=name;input.type=type;input.value=value;input.required=true;if(min!==null)input.min=min;if(max!==null)input.max=max;l.append(input);return l;}
+function openEdit(title,path,fields,convert){state.edit={path,convert};$('#edit-title').textContent=title;$('#edit-fields').replaceChildren(...fields);message('#edit-error');$('#edit-dialog').showModal();}
+function editSpace(s){const category=el('label','','類型'),select=el('select');select.name='category';for(const [key,label]of Object.entries(categories)){const o=el('option','',label);o.value=key;select.append(o);}select.value=s.category;category.append(select);openEdit('編輯空間與配置','/api/admin/spaces/'+s.space_id,[field('name','名稱',s.name),field('location','位置',s.location),category,field('equipment','設備',s.equipment),field('hourly_rate','每小時點數',s.hourly_rate,'number',0,10000),field('grid_rows','配置列數',s.grid_rows,'number',1,20),field('grid_cols','配置欄數',s.grid_cols,'number',1,15),field('aisle_col','走道欄（0為無走道）',s.aisle_col,'number',0,15),field('entrance_col','入口欄',s.entrance_col,'number',1,15)],spacePayload);$('#edit-fields [name="equipment"]').required=false;}
+function editSeat(s){openEdit('編輯座位代碼與位置','/api/admin/seats/'+s.seat_id,[field('seat_code','座位代碼',s.seat_code),field('row_no','列',s.row_no,'number',1,20),field('col_no','欄',s.col_no,'number',1,15)],v=>numeric(v,['row_no','col_no']));}
+$('#close-edit').addEventListener('click',()=>$('#edit-dialog').close());$('#edit-form').addEventListener('submit',async e=>{e.preventDefault();const b=$('button.primary',e.currentTarget);b.disabled=true;try{await api(state.edit.path,{method:'PATCH',body:JSON.stringify(state.edit.convert(values(e.currentTarget)))});$('#edit-dialog').close();await loadAdmin();message('#admin-message','變更已儲存。');}catch(err){message('#edit-error',err.message,true);}finally{b.disabled=false;}});
+async function loadUsers(){try{const users=await api('/api/admin/users'),root=$('#users-list');root.replaceChildren();for(const u of users){const c=el('article','reservation-card');c.append(el('strong','',u.email),el('span','muted',u.role==='ADMIN'?'管理者':'學生'));root.append(c);}}catch(e){message('#user-message',e.message,true);}}
+$('#add-user-form').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/api/admin/users',{method:'POST',body:JSON.stringify(values(f))});f.reset();await loadUsers();message('#user-message','學生帳號已建立，錢包初始點數為0。');}catch(err){message('#user-message',err.message,true);}});
+async function loadAdminReservations(){try{renderReservations(await api('/api/admin/reservations'),'#admin-reservations-list',false);}catch(e){message('#admin-reservations-list',e.message,true);}}
+async function loadAdminPayments(){try{renderOrders(await api('/api/admin/payments'),'#admin-payments-list',false);}catch(e){message('#admin-payments-list',e.message,true);}}
+$('#refresh-admin-reservations').addEventListener('click',loadAdminReservations);$('#refresh-admin-payments').addEventListener('click',loadAdminPayments);
+if(state.token)api('/api/me').then(setupSession).catch(logout);

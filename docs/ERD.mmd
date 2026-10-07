@@ -1,0 +1,78 @@
+erDiagram
+    Users {
+        UUID user_id PK
+        VARCHAR email UK
+        VARCHAR password_hash
+        VARCHAR role
+    }
+    Study_Spaces {
+        UUID space_id PK
+        VARCHAR category
+        INT capacity
+        VARCHAR equipment
+        INT hourly_rate
+        INT grid_rows
+        INT grid_cols
+        INT aisle_col
+        INT entrance_col
+    }
+    Seats {
+        UUID seat_id PK
+        UUID space_id FK
+        VARCHAR seat_code
+        INT row_no
+        INT col_no
+    }
+    Opening_Hours {
+        UUID opening_hours_id PK
+        UUID space_id FK
+        INT weekday
+        TIME open_time
+        TIME close_time
+    }
+    Reservations {
+        UUID reservation_id PK
+        UUID user_id FK
+        UUID seat_id FK
+        INT amount
+        INT party_size
+        VARCHAR status
+        TIMESTAMPTZ start_at
+        TIMESTAMPTZ end_at
+    }
+    Wallets {
+        UUID user_id PK,FK
+        INT balance
+    }
+    Payment_Orders {
+        UUID order_id PK
+        UUID user_id FK
+        INT amount
+        VARCHAR request_key
+        VARCHAR provider
+        VARCHAR status
+    }
+    Wallet_Transactions {
+        UUID transaction_id PK
+        UUID user_id FK
+        UUID order_id FK
+        UUID reservation_id FK
+        INT amount
+        VARCHAR kind
+        VARCHAR reference UK
+    }
+    Attendance {
+        UUID reservation_id PK,FK
+        TIMESTAMPTZ checked_in_at
+        TIMESTAMPTZ checked_out_at
+    }
+    Users ||--o{ Reservations : creates
+    Study_Spaces ||--o{ Seats : contains
+    Study_Spaces ||--o{ Opening_Hours : opens
+    Seats ||--o{ Reservations : reserved_for
+    Users ||--o| Wallets : owns
+    Users ||--o{ Payment_Orders : pays
+    Users ||--o{ Wallet_Transactions : transacts
+    Payment_Orders o|--o| Wallet_Transactions : credits
+    Reservations o|--o{ Wallet_Transactions : charges_or_refunds
+    Reservations ||--o| Attendance : attends

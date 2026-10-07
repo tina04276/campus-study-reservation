@@ -1,96 +1,33 @@
 <!doctype html>
 <html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>校園自習空間預約</title>
-  <link rel="stylesheet" href="/static/styles.css?v=yellow2">
-</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>校園自習空間預約</title><link rel="stylesheet" href="/static/styles.css?v=campus3"></head>
 <body>
-  <header class="topbar">
-    <div class="brand"><span class="brand-mark">S</span><div><strong>校園自習空間</strong><small>Study Space Reservation</small></div></div>
-    <div id="session-label" class="session-label">請先登入</div>
-  </header>
-
-  <main class="shell">
-    <section id="login-view" class="login-layout">
-      <div class="welcome-card">
-        <p class="eyebrow">CAMPUS STUDY SPACE</p>
-        <h1>找到一個<br>適合專心的座位。</h1>
-        <p class="muted">查詢空間、選擇時段，預約後就能安心安排讀書時間。</p>
-        <div class="feature-row"><span>即時查詢空位</span><span>預約衝突檢查</span><span>個人預約管理</span></div>
-      </div>
-      <form id="login-form" class="panel login-panel">
-        <p class="eyebrow">WELCOME BACK</p>
-        <h2>登入系統</h2>
-        <label>Email<input name="email" type="email" autocomplete="username" required value="student@example.edu"></label>
-        <label>密碼<input name="password" type="password" autocomplete="current-password" required value="student123"></label>
-        <button class="primary full" type="submit">登入</button>
-        <p id="login-error" class="message error" role="status"></p>
-        <details class="demo-access"><summary>展示帳號</summary><p>學生：student@example.edu / student123</p><p>管理者：admin@example.edu / admin123</p></details>
-      </form>
-    </section>
-
-    <section id="app-view" class="hidden">
-      <div class="page-heading"><div><p class="eyebrow">YOUR CAMPUS, YOUR SPACE</p><h1 id="page-title">預約自習座位</h1></div><button id="logout-button" class="ghost">登出</button></div>
-      <nav id="student-nav" class="tabs">
-        <button class="tab active" data-panel="booking-panel">查詢與預約</button>
-        <button class="tab" data-panel="my-reservations-panel">我的預約</button>
-      </nav>
-      <nav id="admin-nav" class="tabs hidden">
-        <button class="tab active" data-panel="admin-spaces-panel">空間管理</button>
-        <button class="tab" data-panel="admin-reservations-panel">預約總覽</button>
-      </nav>
-
-      <section id="booking-panel" class="content-panel">
-        <div class="panel search-panel">
-          <div><p class="eyebrow">FIND A SEAT</p><h2>選擇日期與時段</h2><p class="muted">時間以台灣時間計算，請選擇未來時段。</p></div>
-          <form id="search-form" class="search-form">
-            <label>日期<input name="date" id="booking-date" type="date" required></label>
-            <label>開始<input name="start_time" type="time" value="10:00" required></label>
-            <label>結束<input name="end_time" type="time" value="11:00" required></label>
-            <button class="primary" type="submit">查詢空位</button>
-          </form>
-        </div>
-        <div class="booking-steps" aria-label="預約流程"><span>01 選擇時段</span><span>02 選擇座位</span><span>03 確認預約</span></div>
-        <div class="seat-legend"><span><i class="legend-dot available"></i>可預約</span><span><i class="legend-dot selected"></i>已選取</span><span><i class="legend-dot busy"></i>不可預約</span></div>
-        <div id="selection-banner" class="selection-banner hidden"><span id="selection-text"></span><button id="confirm-booking" class="primary">確認預約</button></div>
-        <div id="spaces-list" class="spaces-grid"></div>
-        <p id="booking-message" class="message" role="status"></p>
-      </section>
-
-      <section id="my-reservations-panel" class="content-panel hidden">
-        <div class="section-intro"><div><p class="eyebrow">MY BOOKINGS</p><h2>我的預約</h2></div><button id="refresh-reservations" class="ghost">重新整理</button></div>
-        <p id="reservation-feedback" class="message" role="status"></p>
-        <div id="my-reservations-list" class="reservation-list"></div>
-      </section>
-
-      <section id="admin-spaces-panel" class="content-panel hidden">
-        <div class="section-intro"><div><p class="eyebrow">ADMIN CONSOLE</p><h2>空間與時段管理</h2></div><button id="refresh-admin" class="ghost">重新整理</button></div>
-        <div class="admin-grid">
-          <form id="add-space-form" class="panel form-card"><h3>新增自習空間</h3><label>空間名稱<input name="name" required maxlength="100" placeholder="例如：第二自習室"></label><label>位置<input name="location" required maxlength="255" placeholder="例如：圖書館 3 樓"></label><button class="primary" type="submit">新增空間</button></form>
-          <form id="add-seat-form" class="panel form-card"><h3>新增座位</h3><label>自習空間<select name="space_id" class="space-select" required></select></label><label>座位代碼<input name="seat_code" required maxlength="30" placeholder="例如：C01"></label><button class="primary" type="submit">新增座位</button></form>
-          <form id="hours-form" class="panel form-card"><h3>設定每週開放時間</h3><label>自習空間<select name="space_id" class="space-select" required></select></label><label>星期<select name="weekday"><option value="1">星期一</option><option value="2">星期二</option><option value="3">星期三</option><option value="4">星期四</option><option value="5">星期五</option><option value="6">星期六</option><option value="7">星期日</option></select></label><div class="inline-fields"><label>開放<input name="open_time" type="time" value="08:00" required></label><label>關閉<input name="close_time" type="time" value="22:00" required></label></div><button class="primary" type="submit">儲存時段</button></form>
-        </div>
-        <p id="admin-message" class="message" role="status"></p>
-        <div id="admin-spaces-list" class="admin-space-list"></div>
-      </section>
-
-      <section id="admin-reservations-panel" class="content-panel hidden">
-        <div class="section-intro"><div><p class="eyebrow">ALL BOOKINGS</p><h2>預約總覽</h2></div><button id="refresh-admin-reservations" class="ghost">重新整理</button></div>
-        <div id="admin-reservations-list" class="reservation-list"></div>
-      </section>
-    </section>
-  </main>
-  <dialog id="booking-dialog" aria-labelledby="booking-dialog-title">
-    <div class="dialog-body"><p class="eyebrow">BOOK YOUR SEAT</p><h2 id="booking-dialog-title">確認預約資訊</h2>
-      <p class="muted">確認日期、時段與座位後，再送出預約。</p>
-      <dl id="booking-summary" class="booking-summary"></dl>
-      <p id="dialog-error" class="message error" role="alert"></p>
-      <div class="dialog-actions"><button id="close-booking-dialog" class="ghost" type="button">返回選位</button><button id="submit-booking" class="primary" type="button">送出預約</button></div>
-    </div>
-  </dialog>
-  <footer><span>校園自習空間預約系統</span><span>課程專題原型</span></footer>
-  <script src="/static/app.js?v=yellow2" defer></script>
-</body>
-</html>
+<header class="topbar"><div class="brand"><span class="brand-mark">S</span><div><strong>校園自習空間</strong><small>Study Space Reservation</small></div></div><span id="session-label" class="session-label">請先登入</span></header>
+<main class="shell">
+<section id="login-view" class="login-layout"><div class="welcome-card"><p class="eyebrow">A SPACE TO FOCUS</p><h1>留一個位置，<br>給專心的自己。</h1><p class="muted">一般座位、VIP、雙人與四人研究室。<br>先看時段、選好位置，再安排你的讀書時間。</p><div class="feature-row"><span>座位配置圖</span><span>點數錢包</span><span>預約與報到</span></div></div><form id="login-form" class="panel login-panel"><p class="eyebrow">WELCOME BACK</p><h2>登入系統</h2><label>Email<input name="email" type="email" autocomplete="username" required value="student@example.edu"></label><label>密碼<input name="password" type="password" autocomplete="current-password" required value="student123"></label><button class="primary full">登入</button><p id="login-error" class="message" role="alert"></p><details class="demo-access"><summary>展示帳號</summary><p>學生：student@example.edu / student123</p><p>管理者：admin@example.edu / admin123</p></details></form></section>
+<section id="app-view" class="hidden">
+<div class="page-heading"><div><p class="eyebrow">MAKE ROOM FOR YOUR GOALS</p><h1 id="page-title">預約自習空間</h1></div><button id="logout-button" class="ghost">登出</button></div>
+<nav id="student-nav" class="tabs"><button class="tab active" data-panel="booking-panel">查詢與劃位</button><button class="tab" data-panel="my-reservations-panel">我的預約</button><button class="tab" data-panel="wallet-panel">錢包與付款</button></nav>
+<nav id="admin-nav" class="tabs hidden"><button class="tab active" data-panel="admin-spaces-panel">空間與配置</button><button class="tab" data-panel="admin-users-panel">學生帳號</button><button class="tab" data-panel="admin-reservations-panel">預約與報到</button><button class="tab" data-panel="admin-payments-panel">付款紀錄</button></nav>
+<section id="booking-panel" class="content-panel">
+<div class="panel search-panel"><div><p class="eyebrow">FIND YOUR SPACE</p><h2>選擇日期與時段</h2><p class="muted">台灣時間 · 同日預約 · 研究室以整間計費</p></div><form id="search-form" class="search-form"><label>日期<input id="booking-date" name="date" type="date" required></label><label>開始<input name="start_time" type="time" value="10:00" required></label><label>結束<input name="end_time" type="time" value="11:00" required></label><button class="primary">查詢空位</button></form></div>
+<div id="category-filters" class="category-filters"><button class="category active" data-category="ALL">全部空間</button><button class="category" data-category="GENERAL">一般座位</button><button class="category" data-category="VIP">VIP 座位</button><button class="category" data-category="ROOM2">雙人研究室</button><button class="category" data-category="ROOM4">四人研究室</button></div>
+<div class="seat-legend"><span><i class="legend-dot available"></i>可預約</span><span><i class="legend-dot selected"></i>已選擇</span><span><i class="legend-dot busy"></i>已預約／未開放</span></div><p id="booking-message" class="message" role="status"></p><div id="spaces-list" class="spaces-grid"></div>
+<div id="selection-banner" class="selection-banner hidden"><span id="selection-text"></span><button id="confirm-booking" class="primary">確認預約</button></div>
+</section>
+<section id="my-reservations-panel" class="content-panel hidden"><div class="section-intro"><div><p class="eyebrow">MY BOOKINGS</p><h2>我的預約</h2></div><button id="refresh-reservations" class="ghost">重新整理</button></div><form id="reservation-filter" class="filter-form"><label>日期<input name="date" type="date"></label><label>狀態<select name="status"><option value="">全部</option><option value="RESERVED">已預約</option><option value="CANCELLED">已取消</option></select></label><button class="primary">篩選</button><button id="reset-filter" type="button" class="ghost">清除</button></form><p id="reservation-feedback" class="message" role="status"></p><div id="my-reservations-list" class="reservation-list"></div></section>
+<section id="wallet-panel" class="content-panel hidden"><div class="section-intro"><div><p class="eyebrow">YOUR WALLET</p><h2>錢包與付款</h2></div><button id="refresh-wallet" class="ghost">重新整理</button></div><div class="wallet-banner"><div><p>可用點數</p><strong id="wallet-balance">—</strong><span>1 點 = NT$1</span></div><p id="payment-mode-note">模擬付款，不會扣取真實款項。</p></div><form id="topup-form" class="panel form-card"><h3>儲值點數</h3><label>金額（NT$50–10,000）<input name="amount" type="number" min="50" max="10000" step="1" value="500" required></label><button class="primary">建立儲值訂單</button></form><p id="wallet-message" class="message" role="status"></p><h3>付款訂單</h3><div id="payment-orders" class="reservation-list"></div><h3>點數交易紀錄</h3><div id="wallet-transactions" class="reservation-list"></div></section>
+<section id="admin-spaces-panel" class="content-panel hidden"><div class="section-intro"><div><p class="eyebrow">SPACE MANAGEMENT</p><h2>空間、座位與開放時間</h2></div><button id="refresh-admin" class="ghost">重新整理</button></div><div class="admin-grid">
+<form id="add-space-form" class="panel form-card"><h3>新增空間</h3><label>名稱<input name="name" required maxlength="100"></label><label>位置<input name="location" required maxlength="255"></label><label>類型<select name="category"><option value="GENERAL">一般座位</option><option value="VIP">VIP 座位</option><option value="ROOM2">雙人研究室</option><option value="ROOM4">四人研究室</option></select></label><label>設備<input name="equipment" maxlength="500" placeholder="Wi-Fi、插座、閱讀燈"></label><label>每小時點數<input name="hourly_rate" type="number" min="0" max="10000" value="0" required></label><button class="primary">新增空間</button></form>
+<form id="add-seat-form" class="panel form-card"><h3>新增座位／研究室單位</h3><label>空間<select name="space_id" class="space-select" required></select></label><label>代碼<input name="seat_code" required maxlength="30"></label><div class="inline-fields"><label>列<input name="row_no" type="number" min="0" max="20" value="0"></label><label>欄<input name="col_no" type="number" min="0" max="15" value="0"></label></div><p class="muted">列與欄皆填0時，自動放到第一個空位。</p><button class="primary">新增座位</button></form>
+<form id="hours-form" class="panel form-card"><h3>設定每週開放時間</h3><label>空間<select name="space_id" class="space-select" required></select></label><label>星期<select name="weekday"><option value="1">星期一</option><option value="2">星期二</option><option value="3">星期三</option><option value="4">星期四</option><option value="5">星期五</option><option value="6">星期六</option><option value="7">星期日</option></select></label><div class="inline-fields"><label>開放<input name="open_time" type="time" value="08:00" required></label><label>關閉<input name="close_time" type="time" value="22:00" required></label></div><button class="primary">儲存時段</button></form>
+</div><p id="admin-message" class="message" role="status"></p><div id="admin-spaces-list" class="admin-space-list"></div></section>
+<section id="admin-users-panel" class="content-panel hidden"><div class="section-intro"><h2>學生帳號</h2></div><form id="add-user-form" class="panel form-card"><h3>建立學生帳號</h3><label>Email<input name="email" type="email" autocomplete="off" required></label><label>初始密碼（至少8字元）<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></label><button class="primary">建立帳號</button></form><p id="user-message" class="message" role="status"></p><div id="users-list" class="reservation-list"></div></section>
+<section id="admin-reservations-panel" class="content-panel hidden"><div class="section-intro"><h2>預約與報到總覽</h2><button id="refresh-admin-reservations" class="ghost">重新整理</button></div><div id="admin-reservations-list" class="reservation-list"></div></section>
+<section id="admin-payments-panel" class="content-panel hidden"><div class="section-intro"><h2>付款紀錄</h2><button id="refresh-admin-payments" class="ghost">重新整理</button></div><p class="muted">DEMO 訂單為模擬付款。</p><div id="admin-payments-list" class="reservation-list"></div></section>
+</section></main>
+<dialog id="booking-dialog" aria-labelledby="booking-dialog-title"><div class="dialog-body"><p class="eyebrow">CONFIRM YOUR BOOKING</p><h2 id="booking-dialog-title">確認預約</h2><dl id="booking-summary" class="booking-summary"></dl><label id="party-label">使用人數<select id="party-size"></select></label><p id="booking-cost-note" class="muted"></p><p id="dialog-error" class="message" role="alert"></p><div class="dialog-actions"><button id="close-booking-dialog" class="ghost">返回</button><button id="submit-booking" class="primary">扣點並預約</button></div></div></dialog>
+<dialog id="info-dialog" aria-labelledby="info-title"><div class="dialog-body"><h2 id="info-title"></h2><div id="info-content"></div><div class="dialog-actions"><button id="close-info" class="primary">關閉</button></div></div></dialog>
+<dialog id="edit-dialog" aria-labelledby="edit-title"><form id="edit-form" class="dialog-body form-card"><h2 id="edit-title"></h2><div id="edit-fields"></div><p id="edit-error" class="message" role="alert"></p><div class="dialog-actions"><button id="close-edit" type="button" class="ghost">取消</button><button class="primary">儲存變更</button></div></form></dialog>
+<footer><span>校園自習空間預約系統</span><span>課程專題 · 模擬付款展示</span></footer><script src="/static/app.js?v=campus3" defer></script>
+</body></html>

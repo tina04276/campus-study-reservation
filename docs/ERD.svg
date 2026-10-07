@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1540" viewBox="0 0 800 1540"><rect width="800" height="1540" fill="white"/><text x="40" y="38" font-family="sans-serif" font-size="25" font-weight="bold">Campus Reservation V2 · E-R</text><text x="40" y="65" font-family="sans-serif" font-size="13">PK primary key · FK foreign key · UK unique · ? nullable · 0..N optional many</text><g transform="translate(40,85)">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip-core">
+		<rect x="0" y="0" width="700" height="550"/>
+	</clipPath>
+	<g id="core-group" transform="scale(1,-1) translate(0,-550)" style="clip-path: url(#clip-core)">
+		<g transform="">
+			<polyline points="122.5 325, 122.5 250" style="stroke: rgb(60%,54%,36%); stroke-linecap: butt; stroke-width: 1.3; fill: None; fill-rule: evenodd;"/>
+			<text x="127.5" y="287.5" style="font-family: Helvetica; font-size: 10px;fill: rgb(40%,31%,14%); stroke:none;" transform="translate(0,575) scale(1,-1)">1 : 0..N</text>
+			<polyline points="225 345, 245 250" style="stroke: rgb(60%,54%,36%); stroke-linecap: butt; stroke-width: 1.3; fill: None; fill-rule: evenodd;"/>
+			<text x="235.0" y="305.5" style="font-family: Helvetica; font-size: 10px;fill: rgb(40%,31%,14%); stroke:none;" transform="translate(0,611) scale(1,-1)">1 : 0..N</text>
+			<polyline points="450 345, 470 250" style="stroke: rgb(60%,54%,36%); stroke-linecap: butt; stroke-width: 1.3; fill: None; fill-rule: evenodd;"/>
+			<text x="460.0" y="305.5" style="font-family: Helvetica; font-size: 10px;fill: rgb(40%,31%,14%); stroke:none;" transform="translate(0,611) scale(1,-1)">1 : 0..N</text>
+			<polyline points="450 155, 470 155" style="stroke: rgb(60%,54%,36%); stroke-linecap: butt; stroke-width: 1.3; fill: None; fill-rule: evenodd;"/>
+			<g transform=" matrix(0,1,-1,0,463,193)">
+				<text x="-14.508000000000001" y="0" style="font-family: Helvetica; font-size: 9px;fill: rgb(40%,31%,14%); stroke:none;" transform="translate(0,0) scale(1,-1)">1 : 0..N</text>
+			</g>
+			<rect x="245" y="325" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="245" y="495" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="255" y="507" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1014) scale(1,-1)">Users</text>
+			<text x="255" y="472" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,944) scale(1,-1)">PK user_id UUID</text>
+			<text x="255" y="453" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,906) scale(1,-1)">UK email VARCHAR(255)</text>
+			<text x="255" y="434" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,868) scale(1,-1)">password_hash VARCHAR(255)</text>
+			<text x="255" y="415" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,830) scale(1,-1)">role VARCHAR(20)</text>
+			<text x="255" y="396" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,792) scale(1,-1)">created_at TIMESTAMPTZ</text>
+			<rect x="20" y="325" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="20" y="495" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="30" y="507" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1014) scale(1,-1)">Study_Spaces</text>
+			<text x="30" y="472" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,944) scale(1,-1)">PK space_id UUID</text>
+			<text x="30" y="453" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,906) scale(1,-1)">name / location</text>
+			<text x="30" y="434" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,868) scale(1,-1)">category / capacity / equipment</text>
+			<text x="30" y="415" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,830) scale(1,-1)">hourly_rate INTEGER</text>
+			<text x="30" y="396" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,792) scale(1,-1)">grid_rows / grid_cols</text>
+			<text x="30" y="377" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,754) scale(1,-1)">aisle_col / entrance_col</text>
+			<text x="30" y="358" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,716) scale(1,-1)">is_active BOOLEAN</text>
+			<rect x="20" y="45" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="20" y="215" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="30" y="227" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,454) scale(1,-1)">Opening_Hours</text>
+			<text x="30" y="192" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,384) scale(1,-1)">PK opening_hours_id UUID</text>
+			<text x="30" y="173" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,346) scale(1,-1)">FK space_id → Study_Spaces</text>
+			<text x="30" y="154" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,308) scale(1,-1)">weekday INTEGER</text>
+			<text x="30" y="135" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,270) scale(1,-1)">open_time / close_time TIME</text>
+			<rect x="245" y="45" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="245" y="215" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="255" y="227" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,454) scale(1,-1)">Seats</text>
+			<text x="255" y="192" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,384) scale(1,-1)">PK seat_id UUID</text>
+			<text x="255" y="173" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,346) scale(1,-1)">FK space_id → Study_Spaces</text>
+			<text x="255" y="154" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,308) scale(1,-1)">seat_code VARCHAR(30)</text>
+			<text x="255" y="135" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,270) scale(1,-1)">row_no / col_no INTEGER</text>
+			<text x="255" y="116" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,232) scale(1,-1)">is_active BOOLEAN</text>
+			<rect x="470" y="45" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="470" y="215" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="480" y="227" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,454) scale(1,-1)">Reservations</text>
+			<text x="480" y="192" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,384) scale(1,-1)">PK reservation_id UUID</text>
+			<text x="480" y="173" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,346) scale(1,-1)">FK user_id → Users</text>
+			<text x="480" y="154" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,308) scale(1,-1)">FK seat_id → Seats</text>
+			<text x="480" y="135" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,270) scale(1,-1)">start_at / end_at TIMESTAMPTZ</text>
+			<text x="480" y="116" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,232) scale(1,-1)">status VARCHAR(20)</text>
+			<text x="480" y="97" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,194) scale(1,-1)">amount / party_size INTEGER</text>
+			<text x="480" y="78" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,156) scale(1,-1)">created_at TIMESTAMPTZ</text>
+		</g>
+	</g>
+</g><text x="40" y="710" font-family="sans-serif" font-size="20">Wallet, Payments &amp; Attendance</text><g transform="translate(40,745)">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip-finance">
+		<rect x="0" y="0" width="600" height="760"/>
+	</clipPath>
+	<g id="finance-group" transform="scale(1,-1) translate(0,-760)" style="clip-path: url(#clip-finance)">
+		<g transform="">
+			<polyline points="225 645, 360 645" style="stroke: rgb(60%,54%,36%); stroke-linecap: butt; stroke-width: 1.3; fill: None; fill-rule: evenodd;"/>
+			<text x="292.5" y="658" style="font-family: Helvetica; font-size: 10px;fill: rgb(40%,31%,14%); stroke:none;" transform="translate(0,1316) scale(1,-1)">1 : 0..1</text>
+			<polyline points="122.5 535, 122.5 490" style="stroke: rgb(60%,54%,36%); stroke-linecap: butt; stroke-width: 1.3; fill: None; fill-rule: evenodd;"/>
+			<text x="127.5" y="512.5" style="font-family: Helvetica; font-size: 10px;fill: rgb(40%,31%,14%); stroke:none;" transform="translate(0,1025) scale(1,-1)">1 : 0..N</text>
+			<polyline points="225 555, 360 490" style="stroke: rgb(60%,54%,36%); stroke-linecap: butt; stroke-width: 1.3; fill: None; fill-rule: evenodd;"/>
+			<text x="292.5" y="530.5" style="font-family: Helvetica; font-size: 10px;fill: rgb(40%,31%,14%); stroke:none;" transform="translate(0,1061) scale(1,-1)">1 : 0..N</text>
+			<polyline points="225 395, 360 395" style="stroke: rgb(60%,54%,36%); stroke-linecap: butt; stroke-width: 1.3; fill: None; fill-rule: evenodd;"/>
+			<text x="292.5" y="408" style="font-family: Helvetica; font-size: 10px;fill: rgb(40%,31%,14%); stroke:none;" transform="translate(0,816) scale(1,-1)">0..1 : 0..1</text>
+			<polyline points="225 25, 360 490" style="stroke: rgb(60%,54%,36%); stroke-linecap: butt; stroke-width: 1.3; fill: None; fill-rule: evenodd;"/>
+			<text x="292.5" y="265.5" style="font-family: Helvetica; font-size: 10px;fill: rgb(40%,31%,14%); stroke:none;" transform="translate(0,531) scale(1,-1)">0..1 : 0..N</text>
+			<polyline points="225 115, 360 115" style="stroke: rgb(60%,54%,36%); stroke-linecap: butt; stroke-width: 1.3; fill: None; fill-rule: evenodd;"/>
+			<text x="292.5" y="128" style="font-family: Helvetica; font-size: 10px;fill: rgb(40%,31%,14%); stroke:none;" transform="translate(0,256) scale(1,-1)">1 : 0..1</text>
+			<rect x="20" y="535" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="20" y="705" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="30" y="717" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1434) scale(1,-1)">Users</text>
+			<text x="30" y="682" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1364) scale(1,-1)">PK user_id UUID</text>
+			<text x="30" y="663" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1326) scale(1,-1)">UK email VARCHAR(255)</text>
+			<text x="30" y="644" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1288) scale(1,-1)">password_hash VARCHAR(255)</text>
+			<text x="30" y="625" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1250) scale(1,-1)">role VARCHAR(20)</text>
+			<text x="30" y="606" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1212) scale(1,-1)">created_at TIMESTAMPTZ</text>
+			<rect x="360" y="535" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="360" y="705" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="370" y="717" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1434) scale(1,-1)">Wallets</text>
+			<text x="370" y="682" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1364) scale(1,-1)">PK,FK user_id → Users</text>
+			<text x="370" y="663" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,1326) scale(1,-1)">balance INTEGER ≥ 0</text>
+			<rect x="20" y="285" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="20" y="455" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="30" y="467" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,934) scale(1,-1)">Payment_Orders</text>
+			<text x="30" y="432" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,864) scale(1,-1)">PK order_id UUID</text>
+			<text x="30" y="413" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,826) scale(1,-1)">FK user_id → Users</text>
+			<text x="30" y="394" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,788) scale(1,-1)">amount INTEGER</text>
+			<text x="30" y="375" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,750) scale(1,-1)">status / provider / request_key</text>
+			<text x="30" y="356" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,712) scale(1,-1)">created_at / paid_at</text>
+			<rect x="360" y="285" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="360" y="455" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="370" y="467" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,934) scale(1,-1)">Wallet_Transactions</text>
+			<text x="370" y="432" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,864) scale(1,-1)">PK transaction_id UUID</text>
+			<text x="370" y="413" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,826) scale(1,-1)">FK user_id → Users</text>
+			<text x="370" y="394" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,788) scale(1,-1)">FK reservation_id → Reservations ?</text>
+			<text x="370" y="375" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,750) scale(1,-1)">FK order_id → Payment_Orders ?</text>
+			<text x="370" y="356" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,712) scale(1,-1)">amount / kind / created_at</text>
+			<text x="370" y="337" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,674) scale(1,-1)">UK reference VARCHAR(100)</text>
+			<rect x="20" y="5" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="20" y="175" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="30" y="187" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,374) scale(1,-1)">Reservations</text>
+			<text x="30" y="152" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,304) scale(1,-1)">PK reservation_id UUID</text>
+			<text x="30" y="133" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,266) scale(1,-1)">FK user_id → Users</text>
+			<text x="30" y="114" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,228) scale(1,-1)">FK seat_id → Seats</text>
+			<text x="30" y="95" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,190) scale(1,-1)">start_at / end_at TIMESTAMPTZ</text>
+			<text x="30" y="76" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,152) scale(1,-1)">status VARCHAR(20)</text>
+			<text x="30" y="57" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,114) scale(1,-1)">amount / party_size INTEGER</text>
+			<text x="30" y="38" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,76) scale(1,-1)">created_at TIMESTAMPTZ</text>
+			<rect x="360" y="5" width="205" height="205" rx="8" ry="8" style="stroke: rgb(78%,71%,49%); stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,98%,95%); fill-rule: evenodd;"/>
+			<rect x="360" y="175" width="205" height="35" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,83%,30%); fill-rule: evenodd;"/>
+			<text x="370" y="187" style="font-family: Helvetica-Bold; font-size: 13px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,374) scale(1,-1)">Attendance</text>
+			<text x="370" y="152" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,304) scale(1,-1)">PK,FK reservation_id → Reservations</text>
+			<text x="370" y="133" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,266) scale(1,-1)">checked_in_at TIMESTAMPTZ</text>
+			<text x="370" y="114" style="font-family: CampusCJK; font-size: 10.5px;fill: rgb(21%,18%,10%); stroke:none;" transform="translate(0,228) scale(1,-1)">checked_out_at TIMESTAMPTZ ?</text>
+		</g>
+	</g>
+</g></svg>
