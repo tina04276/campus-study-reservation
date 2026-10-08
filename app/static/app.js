@@ -31,7 +31,7 @@ $('#search-form').addEventListener('submit',e=>{e.preventDefault();searchSpaces(
 $('#search-form').addEventListener('input',()=>{state.searchVersion++;state.selected=null;state.spaces=[];$('#selection-banner').classList.add('hidden');$('#spaces-list').replaceChildren();message('#booking-message','時段已變更，請重新查詢。');});
 async function searchSpaces(){const slot=values($('#search-form')),valid=validateSlot(slot);state.selected=null;$('#selection-banner').classList.add('hidden');const version=++state.searchVersion;if(valid){message('#booking-message',valid,true);$('#spaces-list').replaceChildren();return;}message('#booking-message','查詢中…');try{const spaces=await api('/api/spaces?'+new URLSearchParams(slot));if(version!==state.searchVersion||!state.user)return;state.spaces=spaces;state.slot=slot;renderSpaces();message('#booking-message','選擇座位；也可先查看當日時段。');}catch(e){if(version===state.searchVersion)message('#booking-message',e.message,true);}}
 function renderSpaces(){renderPlan('#space-plan',false);const root=$('#spaces-list');root.replaceChildren();const spaces=state.spaces.filter(s=>state.category==='ALL'||s.category===state.category);if(!spaces.length){root.append(el('p','empty-state','此類型目前沒有空間。'));return;}
- for(const s of spaces){const card=el('article','space-card');card.id='space-'+s.space_id;const head=el('div','space-card-head');const info=el('div');info.append(el('span','space-category',categories[s.category]),el('h3','',s.name),el('p','space-meta',s.location));head.append(info,el('span','rate-badge',s.hourly_rate?`${s.hourly_rate} 點／小時`:'免費'));card.append(head,el('p','space-description',`每個${s.capacity>1?'研究室':'座位'}可用 ${s.capacity} 人 · ${s.equipment||'設備尚未填寫'}`),el('p','space-meta',`開放 ${s.opening_hours?s.opening_hours.open_time+'–'+s.opening_hours.close_time:'當日未開放'} · 可預約 ${s.seats.filter(x=>x.is_available).length}/${s.seats.length}`));
+ for(const s of spaces){const card=el('article','space-card');card.id='space-'+s.space_id;const head=el('div','space-card-head');const info=el('div');info.append(el('span','space-category',`${s.plan_zone?.zone||'E'} 區 · ${categories[s.category]}`),el('h3','',s.name),el('p','space-meta',s.location));head.append(info,el('span','rate-badge',s.hourly_rate?`${s.hourly_rate} 點／小時`:'免費'));card.append(head,el('p','space-description',`每個${s.capacity>1?'研究室':'座位'}可用 ${s.capacity} 人 · ${s.equipment||'設備尚未填寫'}`),el('p','space-meta',`開放 ${s.opening_hours?s.opening_hours.open_time+'–'+s.opening_hours.close_time:'當日未開放'} · 可預約 ${s.seats.filter(x=>x.is_available).length}/${s.seats.length}`));
  if(s.plan_zone)card.append(el('p','space-purpose',s.plan_zone.purpose));
  card.append(button('查看當日時段',()=>showSchedule(s)));
  const scroll=el('div','floor-scroll');const grid=el('div','floor-grid');grid.style.gridTemplateColumns=`repeat(${s.grid_cols}, minmax(48px,1fr))`;
@@ -82,14 +82,25 @@ if(state.token)api('/api/me').then(setupSession).catch(logout);
 
 function renderPlan(target,admin){
  const root=$(target);root.replaceChildren();
- const planned=state.spaces.filter(s=>s.plan_zone&&s.is_active!==false);const actual=planned.reduce((n,s)=>n+s.seats.filter(x=>x.is_active!==false).length*s.capacity,0);
- root.append(el('p','eyebrow','LEARNING CENTRE · 1F'),el('h2','','一個中心，四種學習方式'),el('p','muted',`概念規劃 52 人 · 本次${admin?'管理資料':'查詢'}啟用容量 ${actual} 人 · 北 ↑`));
+ const planned=state.spaces.filter(s=>s.plan_zone&&s.is_active!==false);
+ const legacy=state.spaces.filter(s=>!s.plan_zone&&s.is_active!==false);
+ const unitsFor=s=>s.seats.filter(x=>x.is_active!==false).length;
+ const centerCapacity=planned.reduce((n,s)=>n+unitsFor(s)*s.capacity,0);
+ const legacyCapacity=legacy.reduce((n,s)=>n+unitsFor(s)*s.capacity,0);
+ const total=centerCapacity+legacyCapacity;
+ root.append(el('p','eyebrow','SPACE DIRECTORY · AVAILABLE PLACES'),el('h2','','分區總覽與空間清單'),el('p','muted',`A–D 學習中心規劃 ${centerCapacity} 人 · E 校園既有空間 ${legacyCapacity} 人 · ${admin?'管理資料':'目前查詢'}總容量 ${total} 人`));
  const map=el('div','centre-map');
  for(const [category,zone]of Object.entries({GENERAL:'A',VIP:'B',ROOM2:'C',ROOM4:'D'})){
-  const spaces=planned.filter(s=>s.category===category);const units=spaces.reduce((n,s)=>n+s.seats.filter(x=>x.is_active!==false).length,0);const free=spaces.reduce((n,s)=>n+s.seats.filter(x=>x.is_available).length,0);
-  const b=button('',()=>{state.category=category;state.selected=null;$('#selection-banner').classList.add('hidden');$$('.category').forEach(n=>n.classList.toggle('active',n.dataset.category===category));renderSpaces();if(spaces[0])$('#space-'+spaces[0].space_id)?.scrollIntoView({behavior:'smooth',block:'start'});},'plan-zone zone-'+zone);
+  const spaces=planned.filter(s=>s.category===category);const units=spaces.reduce((n,s)=>n+unitsFor(s),0);const free=spaces.reduce((n,s)=>n+s.seats.filter(x=>x.is_available).length,0);
+  const b=button('',()=>{state.category=category;state.selected=null;$('#selection-banner').classList.add('hidden');$$('.category').forEach(n=>n.classList.toggle('active',n.dataset.category===category));renderSpaces();const target=spaces.find(s=>s.plan_zone?.zone===zone);if(target)$('#space-'+target.space_id)?.scrollIntoView({behavior:'smooth',block:'start'});},'plan-zone zone-'+zone);
   b.disabled=admin||!spaces.length;b.append(el('span','plan-letter',zone),el('strong','',spaces[0]?.plan_zone.title||categories[category]),el('span','',`${units} ${capacities[category]>1?'間':'席'} · ${units*capacities[category]} 人`),el('small','',admin?'實際啟用單位':`${free} ${capacities[category]>1?'間':'席'}可預約`));map.append(b);
  }
  map.append(el('div','centre-corridor','公共走道'),el('div','centre-lobby','入口 ↑ · 接待／報到 · 置物區'),el('div','centre-amenities','飲水／休息區 · 衛生間（概念位置）'));root.append(map);
- root.append(el('p','plan-note','分區圖為概念配置，未依現場丈量；點選分區查看座位。公共設施不提供預約，區內可預約單位與狀態依下方劃位圖為準。'));
+ if(legacy.length){
+  const outside=el('section','legacy-zone'),zoneTitle=el('div','legacy-zone-title');zoneTitle.append(el('span','plan-letter','E'),el('strong','','校園既有空間 · 不在學習中心平面內'),el('span','muted',`${legacyCapacity} 人 · ${legacy.length} 處`));outside.append(zoneTitle);
+  const places=el('div','legacy-places');
+  for(const space of legacy){const unit=unitsFor(space),available=space.seats.filter(x=>x.is_available).length;const entry=button('',()=>{state.category='ALL';state.selected=null;$('#selection-banner').classList.add('hidden');$$('.category').forEach(n=>n.classList.toggle('active',n.dataset.category==='ALL'));renderSpaces();$('#space-'+space.space_id)?.scrollIntoView({behavior:'smooth',block:'start'});},'legacy-place');entry.disabled=admin;entry.append(el('strong','',space.name),el('span','',space.location),el('small','',admin?`${unit} 席／容量 ${unit*space.capacity} 人`:`${available}/${unit} 席可預約 · ${space.hourly_rate?'每小時 '+space.hourly_rate+' 點':'免費'}`));places.append(entry);}
+  outside.append(places);root.append(outside);
+ }
+ root.append(el('p','plan-note','A–D 為學習中心概念位置；E 收錄資料庫中的其他啟用空間。點選任何分區或 E 區地點，會定位到下方同一空間的座位圖。上方可預約數、下方座位狀態及空間卡片一律來自本次查詢。公共設施不提供預約。'));
 }

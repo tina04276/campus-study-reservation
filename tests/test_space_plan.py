@@ -52,3 +52,16 @@ def test_upgrade_preserves_manager_customizations(client):
         apply_space_plan(db);db.commit()
         assert space.location=='管理者的配置' and space.hourly_rate==88
         assert [s.seat_id for s in db.scalars(select(Seat).where(Seat.space_id==space.space_id))]==before
+
+
+def test_every_active_space_has_a_directory_zone(client):
+    h=login(client,'admin@example.edu','admin123')
+    spaces=client.get('/api/admin/spaces',headers=h).json()
+    active=[s for s in spaces if s['is_active']]
+    assert len(active)==6
+    assert len([s for s in active if s['plan_zone']])==4
+    legacy=[s for s in active if not s['plan_zone']]
+    assert {s['name'] for s in legacy}=={'Library Study Hall','Learning Commons'}
+    center=sum(sum(seat['is_active'] for seat in s['seats'])*s['capacity'] for s in active if s['plan_zone'])
+    outside=sum(sum(seat['is_active'] for seat in s['seats'])*s['capacity'] for s in legacy)
+    assert center==52 and outside==14 and center+outside==66
